@@ -22,6 +22,7 @@ use Lastfm;
  * @property int    track
  * @property int    album_id
  * @property int    id
+ * @property int    itunes_id
  */
 class Song extends Model
 {

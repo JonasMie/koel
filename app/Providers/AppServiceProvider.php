@@ -16,7 +16,7 @@ class AppServiceProvider extends ServiceProvider
     {
         // Add some custom validation rules
         Validator::extend('path.valid', function ($attribute, $value, $parameters, $validator) {
-            return is_dir($value) && is_readable($value);
+            return (is_dir($value) || is_file($value)) && is_readable($value);
         });
     }
 

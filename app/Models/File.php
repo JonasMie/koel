@@ -67,10 +67,10 @@ class File
      * Construct our File object.
      * Upon construction, we'll set the path, hash, and associated Song object (if any).
      *
-     * @param string|SplFileInfo $path   Either the file's path, or a SplFileInfo object
+     * @param string|SplFileInfo $path Either the file's path, or a SplFileInfo object
      * @param getID3             $getID3 A getID3 object for DI (and better performance)
      */
-    public function __construct($path, $getID3 = null)
+    public function __construct($path, $getID3 = null, $itunes_id = null)
     {
         $this->splFileInfo = $path instanceof SplFileInfo ? $path : new SplFileInfo($path);
         $this->setGetID3($getID3);
@@ -126,16 +126,16 @@ class File
         }
 
         $props = [
-            'artist' => '',
-            'album' => '',
+            'artist'      => '',
+            'album'       => '',
             'compilation' => false,
-            'title' => '',
-            'length' => $info['playtime_seconds'],
-            'track' => (int) $track,
-            'lyrics' => '',
-            'cover' => array_get($info, 'comments.picture', [null])[0],
-            'path' => $this->path,
-            'mtime' => $this->mtime,
+            'title'       => '',
+            'length'      => $info['playtime_seconds'],
+            'track'       => (int)$track,
+            'lyrics'      => '',
+            'cover'       => array_get($info, 'comments.picture', [null])[0],
+            'path'        => $this->path,
+            'mtime'       => $this->mtime,
         ];
 
         if (!$comments = array_get($info, 'comments_html')) {
@@ -173,7 +173,7 @@ class File
         // A "compilation" property can is determined by:
         // - "part_of_a_compilation" tag (used by iTunes), or
         // - "albumartist" (used by non-retarded applications).
-        $props['compilation'] = (bool) (
+        $props['compilation'] = (bool)(
             array_get($comments, 'part_of_a_compilation', [false])[0] || $props['albumartist']
         );
 
@@ -183,14 +183,14 @@ class File
     /**
      * Sync the song with all available media info against the database.
      *
-     * @param array $tags  The (selective) tags to sync (if the song exists)
+     * @param array $tags The (selective) tags to sync (if the song exists)
      * @param bool  $force Whether to force syncing, even if the file is unchanged
      *
      * @return bool|Song A Song object on success,
      *                   true if file exists but is unmodified,
      *                   or false on an error.
      */
-    public function sync($tags, $force = false)
+    public function sync($tags, $force = false, $itunesId = null)
     {
         // If the file is not new or changed and we're not forcing update, don't do anything.
         if (!$this->isNewOrChanged() && !$force) {
@@ -231,7 +231,7 @@ class File
             // Otherwise, re-use the existing model value.
             $artist = isset($info['artist']) ? Artist::get($info['artist']) : $this->song->album->artist;
 
-            $isCompilation = (bool) array_get($info, 'compilation');
+            $isCompilation = (bool)array_get($info, 'compilation');
 
             // If the "album" tag is specified, use it.
             // Otherwise, re-use the existing model value.
@@ -244,7 +244,7 @@ class File
             }
         } else {
             // The file is newly added.
-            $isCompilation = (bool) array_get($info, 'compilation');
+            $isCompilation = (bool)array_get($info, 'compilation');
             $artist = Artist::get($info['artist']);
             $album = Album::get($artist, $info['album'], $isCompilation);
         }
@@ -271,6 +271,8 @@ class File
         if ($isCompilation) {
             $info['contributing_artist_id'] = $artist->id;
         }
+
+        $info['itunes_id'] = $itunesId;
 
         // Remove these values from the info array, so that we can just use the array as model's input data.
         array_forget($info, ['artist', 'albumartist', 'album', 'cover', 'compilation']);
@@ -354,7 +356,7 @@ class File
     private function getCoverFileUnderSameDirectory()
     {
         // As directory scanning can be expensive, we cache and reuse the result.
-        $cacheKey = md5($this->path.'_cover');
+        $cacheKey = md5($this->path . '_cover');
 
         if (!is_null($cover = Cache::get($cacheKey))) {
             return $cover;
@@ -390,6 +392,6 @@ class File
      */
     public static function getHash($path)
     {
-        return md5(config('app.key').$path);
+        return md5(config('app.key') . $path);
     }
 }

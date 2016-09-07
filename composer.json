@@ -11,7 +11,8 @@
         "barryvdh/laravel-ide-helper": "^2.1",
         "guzzlehttp/guzzle": "^6.1",
         "tymon/jwt-auth": "^0.5.6",
-        "aws/aws-sdk-php-laravel": "^3.1"
+        "aws/aws-sdk-php-laravel": "^3.1",
+        "rodneyrehm/plist": "^2.0",
     },
     "require-dev": {
         "fzaninotto/faker": "~1.4",

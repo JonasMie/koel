@@ -17,11 +17,15 @@ class SyncMedia extends Command
     protected $signature = 'koel:sync
         {record? : A single watch record. Consult Wiki for more info.}
         {--tags= : The comma-separated tags to sync into the database}
-        {--force : Force re-syncing even unchanged files}';
+        {--force : Force re-syncing even unchanged files}
+        {--replace= : A comma-separated string. Replace the first occurence of the first part of the comma-separated string within each iTunes media path with the second part }';
 
     protected $ignored = 0;
+    protected $ignored_pl = 0;
     protected $invalid = 0;
+    protected $invalid_pl = 0;
     protected $synced = 0;
+    protected $synced_pl = 0;
 
     /**
      * The progress bar.
@@ -64,20 +68,29 @@ class SyncMedia extends Command
      */
     protected function syncAll()
     {
-        $this->info('Koel syncing started.'.PHP_EOL);
+        $this->info('Koel syncing started.' . PHP_EOL);
 
         // Get the tags to sync.
         // Notice that this is only meaningful for existing records.
         // New records will have every applicable field sync'ed in.
         $tags = $this->option('tags') ? explode(',', $this->option('tags')) : [];
 
-        Media::sync(null, $tags, $this->option('force'), $this);
+        // Get the substrings to replace within the iTunes media paths
+        $substrings = $this->option('replace') ? explode(',', $this->option('replace')) : [];
+
+        Media::sync(null, $tags, $substrings, $this->option('force'), $this);
 
         $this->output->writeln(
-            PHP_EOL.PHP_EOL
-            ."<info>Completed! {$this->synced} new or updated song(s)</info>, "
-            ."{$this->ignored} unchanged song(s), "
-            ."and <comment>{$this->invalid} invalid file(s)</comment>."
+            PHP_EOL . PHP_EOL
+            . "<info>Completed! {$this->synced} new or updated song(s)</info>, "
+            . "{$this->ignored} unchanged song(s), "
+            . "and <comment>{$this->invalid} invalid file(s)</comment>."
+        );
+
+        $this->output->writeln(
+            "<info>Completed! {$this->synced_pl} new or updated iTunes playlist(s)</info>, "
+            . "{$this->ignored_pl} unchanged iTunes playlist(s), "
+            . "and <comment>{$this->invalid_pl} invalid iTunes playlist(s)</comment>."
         );
     }
 
@@ -117,7 +130,7 @@ class SyncMedia extends Command
             ++$this->ignored;
         } elseif ($result === false) {
             if ($this->option('verbose')) {
-                $this->error("$name is not a valid media file because: ".$reason);
+                $this->error("$name is not a valid media file because: " . $reason);
             }
 
             ++$this->invalid;
@@ -127,6 +140,31 @@ class SyncMedia extends Command
             }
 
             ++$this->synced;
+        }
+    }
+
+    /**
+     * Log a playlists's sync status to console.
+     *
+     * @param string $playlist
+     * @param mixed  $result
+     * @param string $reason
+     */
+    public function logPlaylistToConsole($playlist, $result, $reason = '')
+    {
+
+        if ($result === true) {
+            if ($this->option('verbose')) {
+                $this->line("$playlist has no changes – ignoring");
+            }
+
+            ++$this->ignored_pl;
+        } else {
+            if ($this->option('verbose')) {
+                $this->info("$playlist synced");
+            }
+
+            ++$this->synced_pl;
         }
     }
 

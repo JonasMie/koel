@@ -10,6 +10,8 @@ use App\Models\Artist;
 use App\Models\File;
 use App\Models\Setting;
 use App\Models\Song;
+use App\Models\User;
+use CFPropertyList\CFPropertyList;
 use getID3;
 use Illuminate\Support\Facades\Log;
 use Symfony\Component\Finder\Finder;
@@ -49,13 +51,14 @@ class Media
      * Sync the media. Oh sync the media.
      *
      * @param string|null $path
-     * @param array       $tags        The tags to sync.
+     * @param array       $tags The tags to sync.
      *                                 Only taken into account for existing records.
      *                                 New records will have all tags synced in regardless.
-     * @param bool        $force       Whether to force syncing even unchanged files
+     * @param array       $substrings The substrings to replace within the iTunes media paths
+     * @param bool        $force Whether to force syncing even unchanged files
      * @param SyncMedia   $syncCommand The SyncMedia command object, to log to console if executed by artisan.
      */
-    public function sync($path = null, $tags = [], $force = false, SyncMedia $syncCommand = null)
+    public function sync($path = null, $tags = [], $substrings = [], $force = false, SyncMedia $syncCommand = null)
     {
         if (!app()->runningInConsole()) {
             set_time_limit(config('koel.sync.timeout'));
@@ -66,22 +69,36 @@ class Media
 
         $results = [
             'good' => [], // Updated or added files
-            'bad' => [], // Bad files
+            'bad'  => [], // Bad files
             'ugly' => [], // Unmodified files
         ];
 
         $getID3 = new getID3();
 
-        $files = $this->gatherFiles($path);
+        // Check if iTunes Library file is given as media paht. If so, get its content
+        if (ends_with($path, ".xml") && is_file($path)) {
+            $plist = $this->gatheriTunesFiles($path);
+            if (key_exists('Tracks', $plist)) {
+                $files = $plist['Tracks'];
+            }
+        } else {
+            $files = $this->gatherFiles($path);
+        }
 
         if ($syncCommand) {
             $syncCommand->createProgressBar(count($files));
         }
 
         foreach ($files as $file) {
+            $itunes_id = null;
+            if (is_array($file)) {
+                $itunes_id = $file['Track ID'];
+                $file = $this->normalizePath($file['Location'], $substrings);
+            }
+
             $file = new File($file, $getID3);
 
-            $song = $file->sync($this->tags, $force);
+            $song = $file->sync($this->tags, $force, $itunes_id);
 
             if ($song === true) {
                 $results['ugly'][] = $file;
@@ -104,6 +121,43 @@ class Media
 
         Song::whereNotIn('id', $hashes)->delete();
 
+        // Sync iTunes playlists.
+        if ($plist && $plist['Playlists']) {
+            if ($syncCommand) {
+                $syncCommand->info(PHP_EOL . PHP_EOL . 'Koel iTunes playlist syncing started.' . PHP_EOL);
+                $syncCommand->createProgressBar(count($plist['Playlists']));
+                $user = User::whereIsAdmin(true)->first();
+            } else {
+                $user = auth()->user();
+            }
+            foreach ($plist['Playlists'] as $it_playlist) {
+                if ((key_exists("Visible", $it_playlist) && !$it_playlist['Visible']) || !key_exists("Playlist Items", $it_playlist)) {
+                    if ($syncCommand) {
+                        $syncCommand->updateProgressBar();
+                        $syncCommand->logPlaylistToConsole($it_playlist['Name'], true);
+                    }
+                    continue;
+                }
+                $it_playlist_id = $it_playlist['Playlist ID'];
+                $playlist = $user->playlists()->whereItunesId($it_playlist_id)->first();
+                if (!$playlist) {
+                    $playlist = $user->playlists()->create(["name" => $it_playlist['Name'], "itunes_id" => $it_playlist_id]);
+                }
+
+                $playlist_tracks = [];
+                foreach ($it_playlist['Playlist Items'] as $playlistItem) {
+                    $playlist_tracks[] = $playlistItem['Track ID'];
+                }
+                $res = $playlist->songs()->sync(Song::whereIn('itunes_id', $playlist_tracks)->get(['id']));
+                $result = !(count($res['attached']) || count($res['detached']) || count($res['updated']));
+
+                if ($syncCommand) {
+                    $syncCommand->updateProgressBar();
+                    $syncCommand->logPlaylistToConsole($it_playlist['Name'], $result);
+                }
+            }
+        }
+
         // Trigger LibraryChanged, so that TidyLibrary handler is fired to, erm, tidy our library.
         event(new LibraryChanged());
     }
@@ -125,10 +179,16 @@ class Media
             ->in($path);
     }
 
+
+    private function gatheriTunesFiles($path)
+    {
+        return $plist = (new CFPropertyList($path, CFPropertyList::FORMAT_XML))->toArray();
+    }
+
     /**
      * Sync media using a watch record.
      *
-     * @param WatchRecordInterface $record      The watch record.
+     * @param WatchRecordInterface $record The watch record.
      * @param SyncMedia|null       $syncCommand The SyncMedia command object, to log to console if executed by artisan.
      */
     public function syncByWatchRecord(WatchRecordInterface $record, SyncMedia $syncCommand = null)
@@ -191,7 +251,7 @@ class Media
      */
     public function setTags($tags = [])
     {
-        $this->tags = array_intersect((array) $tags, $this->allTags) ?: $this->allTags;
+        $this->tags = array_intersect((array)$tags, $this->allTags) ?: $this->allTags;
 
         // We always keep track of mtime.
         if (!in_array('mtime', $this->tags, true)) {
@@ -234,5 +294,17 @@ class Media
         $inUseArtists[] = Artist::VARIOUS_ID;
 
         Artist::whereNotIn('id', array_filter($inUseArtists))->delete();
+    }
+
+    private function normalizePath($path, $substrings = [])
+    {
+        if (count($substrings) % 2 == 0) {
+            $i = 0;
+            while ($i < count($substrings)) {
+                $path = str_replace($substrings[$i], $substrings[$i + 1], $path);
+                $i += 2;
+            }
+        }
+        return urldecode(str_replace("file://", "", $path));
     }
 }
