@@ -8,6 +8,7 @@ use App\Libraries\WatchRecord\WatchRecordInterface;
 use App\Models\Album;
 use App\Models\Artist;
 use App\Models\File;
+use App\Models\Playlist;
 use App\Models\Setting;
 use App\Models\Song;
 use App\Models\User;
@@ -130,7 +131,10 @@ class Media
             } else {
                 $user = auth()->user();
             }
+            $it_playlist_ids = [];
             foreach ($plist['Playlists'] as $it_playlist) {
+                $it_playlist_ids[] = $it_playlist['Playlist ID'];
+
                 if ((key_exists("Visible", $it_playlist) && !$it_playlist['Visible']) || !key_exists("Playlist Items", $it_playlist)) {
                     if ($syncCommand) {
                         $syncCommand->updateProgressBar();
@@ -156,6 +160,7 @@ class Media
                     $syncCommand->logPlaylistToConsole($it_playlist['Name'], $result);
                 }
             }
+            Playlist::whereNotIn('itunes_id', $it_playlist_ids)->delete();
         }
 
         // Trigger LibraryChanged, so that TidyLibrary handler is fired to, erm, tidy our library.
