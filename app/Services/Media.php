@@ -123,7 +123,7 @@ class Media
         Song::whereNotIn('id', $hashes)->delete();
 
         // Sync iTunes playlists.
-        if ($plist && $plist['Playlists']) {
+        if (isset($plist) && $plist['Playlists']) {
             if ($syncCommand) {
                 $syncCommand->info(PHP_EOL . PHP_EOL . 'Koel iTunes playlist syncing started.' . PHP_EOL);
                 $syncCommand->createProgressBar(count($plist['Playlists']));
