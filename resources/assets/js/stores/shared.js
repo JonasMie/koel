@@ -23,6 +23,7 @@ export const sharedStore = {
     latestVersion: '',
     cdnUrl: '',
     originalMediaPath: '',
+    originaliTunesPath: ''
   },
 
   init() {
@@ -53,6 +54,7 @@ export const sharedStore = {
 
         // Keep a copy of the media path. We'll need this to properly warn the user later.
         this.state.originalMediaPath = this.state.settings.media_path;
+        this.state.originaliTunesPath = this.state.settings.iTunes_path;
 
         resolve(data)
       }, r => reject(r));

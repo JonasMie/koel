@@ -17,6 +17,17 @@
       </div>
 
       <div class="form-row">
+        <label for="inputSettingsiTunesPath">iTunes Library File</label>
+        <p class="help">
+          The <em>absolute</em> path to the iTunes Library file.
+          Koel will scan this file for songs and extract any available information.<br>
+          Scanning may take a while, especially if you have a lot of songs, so be patient.
+        </p>
+
+        <input type="text" v-model="state.settings.iTunes_path" id="inputSettingsiTunesPath">
+      </div>
+
+      <div class="form-row">
         <button type="submit">Scan</button>
       </div>
     </form>
@@ -43,7 +54,7 @@ export default {
      * Determine if we should warn the user upon saving.
      * @return {boolean}
      */
-    shouldWarn() {
+    shouldWarn() { // TODO : should warn for itunes?
       // Warn the user if the media path is not empty and about to change.
       return this.sharedState.originalMediaPath &&
         this.sharedState.originalMediaPath !== this.state.settings.media_path.trim();

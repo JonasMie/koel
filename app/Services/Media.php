@@ -76,7 +76,7 @@ class Media
 
         $getID3 = new getID3();
 
-        // Check if iTunes Library file is given as media paht. If so, get its content
+        // Check if iTunes Library file is given as media path. If so, get its content
         if (ends_with($path, ".xml") && is_file($path)) {
             $plist = $this->gatheriTunesFiles($path);
             if (key_exists('Tracks', $plist)) {
