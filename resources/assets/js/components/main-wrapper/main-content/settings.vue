@@ -35,81 +35,67 @@
 </template>
 
 <script>
-import swal from 'sweetalert';
-
-import { settingStore, sharedStore } from '../../../stores';
-import { parseValidationError, forceReloadWindow, event, showOverlay, hideOverlay } from '../../../utils';
-import router from '../../../router';
+import { settingStore, sharedStore } from '../../../stores'
+import { parseValidationError, forceReloadWindow, showOverlay, hideOverlay, alerts } from '../../../utils'
+import router from '../../../router'
 
 export default {
-  data() {
+  data () {
     return {
       state: settingStore.state,
-      sharedState: sharedStore.state,
-    };
+      sharedState: sharedStore.state
+    }
   },
 
   computed: {
     /**
      * Determine if we should warn the user upon saving.
+     *
      * @return {boolean}
      */
     shouldWarn() { // TODO : should warn for itunes?
       // Warn the user if the media path is not empty and about to change.
       return this.sharedState.originalMediaPath &&
-        this.sharedState.originalMediaPath !== this.state.settings.media_path.trim();
-    },
+        this.sharedState.originalMediaPath !== this.state.settings.media_path.trim()
+    }
   },
 
   methods: {
-    confirmThenSave() {
+    confirmThenSave () {
       if (this.shouldWarn) {
-        swal({
-          title: 'Be careful!',
-          text: 'Changing the media path will essentially remove all existing data – songs, artists, \
-          albums, favorites, everything – and empty your playlists!',
-          type: 'warning',
-          showCancelButton: true,
-          confirmButtonText: 'I know. Go ahead.',
-          confirmButtonColor: '#c34848',
-        }, this.save);
+        alerts.confirm('Warning: Changing the media path will essentially remove all existing data – songs, artists, \
+          albums, favorites, everything – and empty your playlists! Sure you want to proceed?', this.save)
       } else {
-        this.save();
+        this.save()
       }
     },
 
     /**
      * Save the settings.
      */
-    save() {
-      showOverlay();
+    save () {
+      showOverlay()
 
       settingStore.update().then(() => {
         // Make sure we're back to home first.
-        router.go('home');
-        forceReloadWindow();
+        router.go('home')
+        forceReloadWindow()
       }).catch(r => {
-        let msg = 'Unknown error.';
+        let msg = 'Unknown error.'
 
         if (r.status === 422) {
-          msg = parseValidationError(r.responseJSON)[0];
+          msg = parseValidationError(r.responseJSON)[0]
         }
 
-        hideOverlay();
-
-        swal({
-          title: 'Something went wrong',
-          text: msg,
-          type: 'error',
-          allowOutsideClick: true,
-        });
-      });
-    },
-  },
-};
+        hideOverlay()
+        alerts.error(msg)
+      })
+    }
+  }
+}
 </script>
 
-<style lang="sass">
+<style lang="scss">
 @import "../../../../sass/partials/_vars.scss";
 @import "../../../../sass/partials/_mixins.scss";
 

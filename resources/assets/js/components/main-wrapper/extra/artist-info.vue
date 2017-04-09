@@ -12,11 +12,10 @@
         class="cool-guys-posing cover">
 
       <div class="bio" v-if="artist.info.bio.summary">
-        <div class="summary" v-show="mode !== 'full' && !showingFullBio" v-html="artist.info.bio.summary"></div>
-        <div class="full" v-show="mode === 'full' || showingFullBio" v-html="artist.info.bio.full"></div>
+        <div class="summary" v-show="showSummary" v-html="artist.info.bio.summary"/>
+        <div class="full" v-show="showFull" v-html="artist.info.bio.full"/>
 
-        <button class="more" v-show="mode !== 'full' && !showingFullBio"
-          @click.prevent="showingFullBio = !showingFullBio">
+        <button class="more" v-show="showSummary" @click.prevent="showingFullBio = true">
           Full Bio
         </button>
       </div>
@@ -30,36 +29,49 @@
 </template>
 
 <script>
-import { playback } from '../../../services';
+import { playback } from '../../../services'
 
 export default {
   props: ['artist', 'mode'],
 
-  data() {
+  data () {
     return {
-      showingFullBio: false,
-    };
+      showingFullBio: false
+    }
+  },
+
+  watch: {
+    /**
+     * Whenever a new artist is loaded into this component, we reset the "full bio" state.
+     * @return {Boolean}
+     */
+    artist () {
+      this.showingFullBio = false
+    }
+  },
+
+  computed: {
+    showSummary () {
+      return this.mode !== 'full' && !this.showingFullBio
+    },
+
+    showFull () {
+      return this.mode === 'full' || this.showingFullBio
+    }
   },
 
   methods: {
     /**
-     * Reset the component's current state.
-     */
-    resetState() {
-      this.showingFullBio = false;
-    },
-
-    /**
      * Shuffle all songs performed by the current song's artist.
      */
-    shuffleAll() {
-      playback.playAllByArtist(this.artist);
-    },
-  },
-};
+    shuffleAll () {
+      playback.playAllByArtist(this.artist, false)
+    }
+  }
+}
 </script>
 
-<style lang="sass">
+<style lang="scss">
 @import "../../../../sass/partials/_vars.scss";
 @import "../../../../sass/partials/_mixins.scss";
 

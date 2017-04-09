@@ -5,24 +5,25 @@
       @input="filter"
       placeholder="Search"
       v-model="q"
-      v-koel-focus="showing">
+      v-koel-focus
+    >
   </div>
 </template>
 
 <script>
-import isMobile from 'ismobilejs';
-import { debounce } from 'lodash';
+import isMobile from 'ismobilejs'
+import { debounce } from 'lodash'
 
-import { event } from '../../utils';
+import { event } from '../../utils'
 
 export default {
   name: 'site-header--search-form',
 
-  data() {
+  data () {
     return {
       q: '',
-      showing: !isMobile.phone,
-    };
+      showing: !isMobile.phone
+    }
   },
 
   methods: {
@@ -30,24 +31,19 @@ export default {
      * Limit the filter's execution rate using lodash's debounce.
      */
     filter: debounce(function () {
-      event.emit('filter:changed', this.q);
-    }, 200),
+      event.emit('filter:changed', this.q)
+    }, 200)
   },
 
-  created() {
+  created () {
     event.on('search:toggle', () => {
-      this.showing = !this.showing;
-    });
-
-    event.on('koel:teardown', () => {
-      this.q = '';
-      this.filter();
+      this.showing = !this.showing
     })
-  },
-};
+  }
+}
 </script>
 
-<style lang="sass">
+<style lang="scss">
 @import "../../../sass/partials/_vars.scss";
 @import "../../../sass/partials/_mixins.scss";
 

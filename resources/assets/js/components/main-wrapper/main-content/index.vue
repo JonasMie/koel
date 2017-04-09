@@ -1,55 +1,57 @@
 <template>
   <section id="mainContent">
-    <div class="translucent" :style="{ backgroundImage: albumCover ? 'url(' + albumCover + ')' : 'none' }"></div>
-    <home v-show="view === 'home'"></home>
-    <queue v-show="view === 'queue'"></queue>
-    <songs v-show="view === 'songs'"></songs>
-    <albums v-show="view === 'albums'"></albums>
-    <album v-show="view === 'album'"></album>
-    <artists v-show="view === 'artists'"></artists>
-    <artist v-show="view === 'artist'"></artist>
-    <users v-show="view === 'users'"></users>
-    <settings v-show="view === 'settings'"></settings>
-    <playlist v-show="view === 'playlist'"></playlist>
-    <favorites v-show="view === 'favorites'"></favorites>
-    <profile v-show="view === 'profile'"></profile>
-    <youtube-player v-if="sharedState.useYouTube" v-show="view === 'youtubePlayer'"></youtube-player>
+    <div class="translucent" :style="{ backgroundImage: albumCover ? 'url('+albumCover+')' : 'none' }"></div>
+    <home v-show="view === 'home'"/>
+    <queue v-show="view === 'queue'"/>
+    <songs v-show="view === 'songs'"/>
+    <albums v-show="view === 'albums'"/>
+    <album v-show="view === 'album'"/>
+    <artists v-show="view === 'artists'"/>
+    <artist v-show="view === 'artist'"/>
+    <users v-show="view === 'users'"/>
+    <settings v-show="view === 'settings'"/>
+    <playlist v-show="view === 'playlist'"/>
+    <favorites v-show="view === 'favorites'"/>
+    <profile v-show="view === 'profile'"/>
+    <youtube-player v-if="sharedState.useYouTube" v-show="view === 'youtubePlayer'"/>
   </section>
 </template>
 
 <script>
-import { event } from '../../../utils';
-import { albumStore, sharedStore } from '../../../stores';
+import { event } from '../../../utils'
+import { albumStore, sharedStore } from '../../../stores'
 
-import albums from './albums.vue';
-import album from './album.vue';
-import artists from './artists.vue';
-import artist from './artist.vue';
-import songs from './songs.vue';
-import settings from './settings.vue';
-import users from './users.vue';
-import queue from './queue.vue';
-import home from './home.vue';
-import playlist from './playlist.vue';
-import favorites from './favorites.vue';
-import profile from './profile.vue';
-import youtubePlayer from './youtube-player.vue';
+import albums from './albums.vue'
+import album from './album.vue'
+import artists from './artists.vue'
+import artist from './artist.vue'
+import songs from './songs.vue'
+import settings from './settings.vue'
+import users from './users.vue'
+import queue from './queue.vue'
+import home from './home.vue'
+import playlist from './playlist.vue'
+import favorites from './favorites.vue'
+import profile from './profile.vue'
+import youtubePlayer from './youtube-player.vue'
 
 export default {
   components: { albums, album, artists, artist, songs, settings,
     users, home, queue, playlist, favorites, profile, youtubePlayer },
 
-  data() {
+  data () {
     return {
       view: 'home', // The default view
       albumCover: null,
-      sharedState: sharedStore.state,
-    };
+      sharedState: sharedStore.state
+    }
   },
 
-  created() {
+  created () {
     event.on({
-      'main-content-view:load': view => this.view = view,
+      'main-content-view:load': view => {
+        this.view = view
+      },
 
       /**
        * When a new song is played, find its cover for the translucent effect.
@@ -59,14 +61,14 @@ export default {
        * @return {Boolean}
        */
       'song:played': song => {
-        this.albumCover = song.album.cover === albumStore.stub.cover ? null : song.album.cover;
-      },
-    });
-  },
-};
+        this.albumCover = song.album.cover === albumStore.stub.cover ? null : song.album.cover
+      }
+    })
+  }
+}
 </script>
 
-<style lang="sass">
+<style lang="scss">
 @import "../../../../sass/partials/_vars.scss";
 @import "../../../../sass/partials/_mixins.scss";
 
@@ -108,6 +110,7 @@ export default {
     align-content: stretch;
     display: flex;
     line-height: normal;
+    background: rgba(0, 0, 0, .1);
 
     span:first-child {
       flex: 1;
@@ -115,9 +118,9 @@ export default {
 
     .meta {
       display: block;
-      font-size: $fontSize;
+      font-size: .9rem;
       color: $color2ndText;
-      margin: 12px 0 0 2px;
+      margin: 6px 0 0 2px;
 
       a {
         color: #fff;
@@ -144,7 +147,7 @@ export default {
     bottom: -20px;
     filter: blur(20px);
     opacity: .07;
-    z-index: 0;
+    z-index: 2;
     overflow: hidden;
     background-size: cover;
     background-position: center;
@@ -161,12 +164,6 @@ export default {
       line-height: 1.85rem;
       text-align: center;
       flex-direction: column;
-
-      .toggler {
-        font-size: 1rem;
-        margin-left: 4px;
-        color: $colorHighlight;
-      }
 
       .meta {
         display: none;

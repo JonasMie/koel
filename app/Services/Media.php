@@ -120,7 +120,7 @@ class Media
             return self::getHash($f->getPath());
         }, array_merge($results['ugly'], $results['good']));
 
-        Song::whereNotIn('id', $hashes)->delete();
+        Song::deleteWhereIDsNotIn($hashes);
 
         // Sync iTunes playlists.
         if (isset($plist) && $plist['Playlists']) {
@@ -178,6 +178,7 @@ class Media
     {
         return Finder::create()
             ->ignoreUnreadableDirs()
+            ->ignoreDotFiles((bool) config('koel.ignore_dot_files')) // https://github.com/phanan/koel/issues/450
             ->files()
             ->followLinks()
             ->name('/\.(mp3|ogg|m4a|flac)$/i')
@@ -221,7 +222,10 @@ class Media
             // File format etc. will be handled by File::sync().
             elseif ($record->isNewOrModified()) {
                 $result = (new File($path))->sync($this->tags);
+
                 Log::info($result instanceof Song ? "Synchronized $path" : "Invalid file $path");
+
+                event(new LibraryChanged());
             }
 
             return;
@@ -242,6 +246,8 @@ class Media
             foreach ($this->gatherFiles($path) as $file) {
                 (new File($file))->sync($this->tags);
             }
+
+            event(new LibraryChanged());
 
             Log::info("Synced all song(s) under $path");
         }
@@ -281,24 +287,24 @@ class Media
      */
     public function tidy()
     {
-        $inUseAlbums = Song::select('album_id')->groupBy('album_id')->get()->lists('album_id')->toArray();
+        $inUseAlbums = Song::select('album_id')->groupBy('album_id')->get()->pluck('album_id')->toArray();
         $inUseAlbums[] = Album::UNKNOWN_ID;
-        Album::whereNotIn('id', $inUseAlbums)->delete();
+        Album::deleteWhereIDsNotIn($inUseAlbums);
 
-        $inUseArtists = Album::select('artist_id')->groupBy('artist_id')->get()->lists('artist_id')->toArray();
+        $inUseArtists = Album::select('artist_id')->groupBy('artist_id')->get()->pluck('artist_id')->toArray();
 
         $contributingArtists = Song::distinct()
             ->select('contributing_artist_id')
             ->groupBy('contributing_artist_id')
             ->get()
-            ->lists('contributing_artist_id')
+            ->pluck('contributing_artist_id')
             ->toArray();
 
         $inUseArtists = array_merge($inUseArtists, $contributingArtists);
         $inUseArtists[] = Artist::UNKNOWN_ID;
         $inUseArtists[] = Artist::VARIOUS_ID;
 
-        Artist::whereNotIn('id', array_filter($inUseArtists))->delete();
+        Artist::deleteWhereIDsNotIn(array_filter($inUseArtists));
     }
 
     private function normalizePath($path, $substrings = [])

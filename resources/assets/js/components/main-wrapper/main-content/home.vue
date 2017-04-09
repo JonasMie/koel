@@ -13,7 +13,7 @@
             <li v-for="song in top.songs"
               :top-play-count="top.songs.length ? top.songs[0].playCount : 0"
               :song="song"
-              is="song-item"></li>
+              is="song-item"/>
           </ol>
         </section>
 
@@ -24,11 +24,11 @@
             <li v-for="song in recentSongs"
               :top-play-count="top.songs.length ? top.songs[0].playCount : 0"
               :song="song"
-              is="song-item"></li>
+              is="song-item"/>
           </ol>
 
           <p class="none" v-show="!recentSongs.length">
-            Your most-recent songs in this session will be displayed here.<br />
+            Your recently played songs will be displayed here.<br />
             Start listening!
           </p>
         </section>
@@ -39,14 +39,12 @@
 
         <div class="two-cols">
           <div class="wrapper as-list">
-            <album-item v-for="album in recentlyAdded.albums" :album="album"></album-item>
-            <span class="item filler" v-for="n in 3"></span>
+            <album-item v-for="album in recentlyAdded.albums" :album="album"/>
+            <span class="item filler" v-for="n in 3"/>
           </div>
           <div>
             <ul class="recently-added-song-list" v-show="recentlyAdded.songs.length">
-              <li v-for="song in recentlyAdded.songs"
-                :song="song"
-                is="song-item"></li>
+              <li v-for="song in recentlyAdded.songs" :song="song" is="song-item"/>
             </ul>
           </div>
         </div>
@@ -55,36 +53,36 @@
       <section class="top-artists" v-show="top.artists.length">
         <h1>Top Artists</h1>
 
-        <div class="wrapper" :class="'as-' + preferences.artistsViewMode">
-          <artist-item v-for="artist in top.artists" :artist="artist"></artist-item>
-          <span class="item filler" v-for="n in 3"></span>
+        <div class="wrapper" :class="`as-${preferences.artistsViewMode}`">
+          <artist-item v-for="artist in top.artists" :artist="artist"/>
+          <span class="item filler" v-for="n in 3"/>
         </div>
       </section>
 
-      <section class="top-albums" :class="'as-' + preferences.albumsViewMode" v-show="top.albums.length">
+      <section class="top-albums" :class="`as-${preferences.albumsViewMode}`" v-show="top.albums.length">
         <h1>Top Albums</h1>
 
         <div class="wrapper">
-          <album-item v-for="album in top.albums" :album="album"></album-item>
-          <span class="item filler" v-for="n in 3"></span>
+          <album-item v-for="album in top.albums" :album="album"/>
+          <span class="item filler" v-for="n in 3"/>
         </div>
       </section>
 
-      <to-top-button :showing="showBackToTop"></to-top-button>
+      <to-top-button/>
     </div>
   </section>
 </template>
 
 <script>
-import { sample } from 'lodash';
+import { sample } from 'lodash'
 
-import { event } from '../../../utils';
-import { songStore, albumStore, artistStore, userStore, preferenceStore } from '../../../stores';
-import infiniteScroll from '../../../mixins/infinite-scroll';
+import { event } from '../../../utils'
+import { songStore, albumStore, artistStore, userStore, preferenceStore } from '../../../stores'
+import infiniteScroll from '../../../mixins/infinite-scroll'
 
-import albumItem from '../../shared/album-item.vue';
-import artistItem from '../../shared/artist-item.vue';
-import songItem from '../../shared/home-song-item.vue';
+import albumItem from '../../shared/album-item.vue'
+import artistItem from '../../shared/artist-item.vue'
+import songItem from '../../shared/home-song-item.vue'
 
 export default {
   components: { albumItem, artistItem, songItem },
@@ -105,58 +103,58 @@ export default {
         'Sup, %s?',
         'How’s life, %s?',
         'How’s your day, %s?',
-        'How have you been, %s?',
+        'How have you been, %s?'
       ],
       recentSongs: [],
       top: {
         songs: [],
         albums: [],
-        artists: [],
+        artists: []
       },
       recentlyAdded: {
         albums: [],
-        songs: [],
+        songs: []
       },
 
-      preferences: preferenceStore.state,
-    };
+      preferences: preferenceStore.state
+    }
   },
 
   computed: {
-    greeting() {
-      return sample(this.greetings).replace('%s', userStore.current.name);
+    greeting () {
+      return sample(this.greetings).replace('%s', userStore.current.name)
     },
 
-    showRecentlyAddedSection() {
-      return this.recentlyAdded.albums.length || this.recentlyAdded.songs.length;
-    },
+    showRecentlyAddedSection () {
+      return this.recentlyAdded.albums.length || this.recentlyAdded.songs.length
+    }
   },
 
   methods: {
     /**
      * Refresh the dashboard with latest data.
      */
-    refreshDashboard() {
-      this.top.songs = songStore.getMostPlayed(7);
-      this.top.albums = albumStore.getMostPlayed(6);
-      this.top.artists = artistStore.getMostPlayed(6);
-      this.recentlyAdded.albums = albumStore.getRecentlyAdded(6);
-      this.recentlyAdded.songs = songStore.getRecentlyAdded(10);
-      this.recentSongs = songStore.getRecent(7);
-    },
+    refreshDashboard () {
+      this.top.songs = songStore.getMostPlayed(7)
+      this.top.albums = albumStore.getMostPlayed(6)
+      this.top.artists = artistStore.getMostPlayed(6)
+      this.recentlyAdded.albums = albumStore.getRecentlyAdded(6)
+      this.recentlyAdded.songs = songStore.getRecentlyAdded(10)
+      this.recentSongs = songStore.recentlyPlayed
+    }
   },
 
-  created() {
+  created () {
     event.on({
       'koel:ready': () => this.refreshDashboard(),
 
-      'song:played': () => this.refreshDashboard(),
-    });
-  },
-};
+      'song:played': () => this.refreshDashboard()
+    })
+  }
+}
 </script>
 
-<style lang="sass">
+<style lang="scss">
 @import "../../../../sass/partials/_vars.scss";
 @import "../../../../sass/partials/_mixins.scss";
 

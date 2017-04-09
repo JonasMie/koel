@@ -1,27 +1,27 @@
 <template>
   <span class="view-modes">
-    <a :class="{ active: mutatedMode === 'thumbnails' }"
+    <a class="thumbnails" :class="{ active: mutatedMode === 'thumbnails' }"
       title="View as thumbnails"
       @click.prevent="setMode('thumbnails')"><i class="fa fa-th-large"></i></a>
-    <a :class="{ active: mutatedMode === 'list' }"
+    <a class="list" :class="{ active: mutatedMode === 'list' }"
       title="View as list"
       @click.prevent="setMode('list')"><i class="fa fa-list"></i></a>
   </span>
 </template>
 
 <script>
-import isMobile from 'ismobilejs';
+import isMobile from 'ismobilejs'
 
-import { event } from '../../utils';
-import { preferenceStore as preferences } from '../../stores';
+import { event } from '../../utils'
+import { preferenceStore as preferences } from '../../stores'
 
 export default {
   props: ['mode', 'for'],
 
-  data() {
+  data () {
     return {
-      mutatedMode: this.mode,
-    };
+      mutatedMode: this.mode
+    }
   },
 
   computed: {
@@ -30,36 +30,36 @@ export default {
      *
      * @return {string}
      */
-    preferenceKey() {
-      return `${this.for}ViewMode`;
-    },
+    preferenceKey () {
+      return `${this.for}ViewMode`
+    }
   },
 
   methods: {
-    setMode(mode) {
-      preferences[this.preferenceKey] = this.mutatedMode = mode;
-      this.$parent.changeViewMode(mode);
-    },
+    setMode (mode) {
+      preferences[this.preferenceKey] = this.mutatedMode = mode
+      this.$parent.changeViewMode(mode)
+    }
   },
 
-  created() {
+  created () {
     event.on('koel:ready', () => {
-      this.mutatedMode = preferences[this.preferenceKey];
+      this.mutatedMode = preferences[this.preferenceKey]
 
       // If the value is empty, we set a default mode.
       // On mobile, the mode should be 'listing'.
       // For desktop, 'thumbnails'.
       if (!this.mutatedMode) {
-        this.mutatedMode = isMobile.phone ? 'list' : 'thumbnails';
+        this.mutatedMode = isMobile.phone ? 'list' : 'thumbnails'
       }
 
-      this.setMode(this.mutatedMode);
-    });
-  },
-};
+      this.setMode(this.mutatedMode)
+    })
+  }
+}
 </script>
 
-<style lang="sass" scoped>
+<style lang="scss" scoped>
 @import "../../../sass/partials/_vars.scss";
 @import "../../../sass/partials/_mixins.scss";
 

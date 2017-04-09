@@ -3,11 +3,12 @@
     <p>Add {{ songs.length | pluralize('song') }} to</p>
 
     <ul>
-      <li v-if="mergedSettings.canQueue" @click="queueSongsAfterCurrent">After Current Song</li>
-      <li v-if="mergedSettings.canQueue" @click="queueSongsToBottom">Bottom of Queue</li>
-      <li v-if="mergedSettings.canQueue" @click="queueSongsToTop">Top of Queue</li>
-      <li v-if="mergedSettings.canLike" @click="addSongsToFavorite">Favorites</li>
-      <li v-for="playlist in playlistState.playlists" @click="addSongsToExistingPlaylist(playlist)">{{ playlist.name }}</li>
+      <li class="after-current" @click="queueSongsAfterCurrent">After Current Song</li>
+      <li class="bottom-queue" @click="queueSongsToBottom">Bottom of Queue</li>
+      <li class="top-queue" @click="queueSongsToTop">Top of Queue</li>
+      <li class="favorites" v-if="config.favorites" @click="addSongsToFavorite">Favorites</li>
+      <li class="playlist" v-for="playlist in playlistState.playlists"
+        @click="addSongsToExistingPlaylist(playlist)">{{ playlist.name }}</li>
     </ul>
 
     <p>or create a new playlist</p>
@@ -26,36 +27,28 @@
 </template>
 
 <script>
-import { assign } from 'lodash';
-
-import { pluralize, event } from '../../utils';
-import { playlistStore } from '../../stores';
-import router from '../../router';
-import songMenuMethods from '../../mixins/song-menu-methods';
+import { pluralize } from '../../utils'
+import { playlistStore } from '../../stores'
+import router from '../../router'
+import songMenuMethods from '../../mixins/song-menu-methods'
 
 export default {
   name: 'shared--add-to-menu',
-  props: ['songs', 'showing', 'settings'],
+  props: ['songs', 'showing', 'config'],
   mixins: [songMenuMethods],
   filters: { pluralize },
 
-  data() {
+  data () {
     return {
       newPlaylistName: '',
-      playlistState: playlistStore.state,
-      mergedSettings: assign({
-        canQueue: true,
-        canLike: true,
-      }, this.settings),
-    };
+      playlistState: playlistStore.state
+    }
   },
 
   watch: {
-    songs() {
-      if (!this.songs.length) {
-        this.close();
-      }
-    },
+    songs () {
+      this.songs.length || this.close()
+    }
   },
 
   methods: {
@@ -63,30 +56,30 @@ export default {
      * Save the selected songs as a playlist.
      * As of current we don't have selective save.
      */
-    createNewPlaylistFromSongs() {
-      this.newPlaylistName = this.newPlaylistName.trim();
+    createNewPlaylistFromSongs () {
+      this.newPlaylistName = this.newPlaylistName.trim()
 
       if (!this.newPlaylistName) {
-        return;
+        return
       }
 
-      playlistStore.store(this.newPlaylistName, this.songs).then(p => {
-        this.newPlaylistName = '';
+      playlistStore.store(this.newPlaylistName, this.songs).then(playlist => {
+        this.newPlaylistName = ''
         // Activate the new playlist right away
-        this.$nextTick(() => router.go(`playlist/${p.id}`));
-      });
+        this.$nextTick(() => router.go(`playlist/${playlist.id}`))
+      })
 
-      this.close();
+      this.close()
     },
 
-    close() {
-      this.$parent.closeAddToMenu();
-    },
-  },
-};
+    close () {
+      this.$parent.closeAddToMenu()
+    }
+  }
+}
 </script>
 
-<style lang="sass" scoped>
+<style lang="scss" scoped>
 @import "../../../sass/partials/_vars.scss";
 @import "../../../sass/partials/_mixins.scss";
 

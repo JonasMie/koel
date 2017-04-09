@@ -2,7 +2,6 @@
 
 namespace App\Models;
 
-use Cache;
 use Exception;
 use getID3;
 use getid3_lib;
@@ -358,7 +357,7 @@ class File
         // As directory scanning can be expensive, we cache and reuse the result.
         $cacheKey = md5($this->path . '_cover');
 
-        if (!is_null($cover = Cache::get($cacheKey))) {
+        if (!is_null($cover = cache($cacheKey))) {
             return $cover;
         }
 
@@ -378,7 +377,7 @@ class File
             $cover = false;
         }
 
-        Cache::put($cacheKey, $cover, 24 * 60);
+        cache([$cacheKey => $cover], 24 * 60);
 
         return $cover;
     }

@@ -2,61 +2,50 @@
  * Add necessary functionalities into a view that contains a song-list component.
  */
 
-import { assign } from 'lodash';
+import { assign } from 'lodash'
+import isMobile from 'ismobilejs'
 
-import { event } from '../utils';
-import { playback } from '../services';
-import addToMenu from '../components/shared/add-to-menu.vue';
-import songList from '../components/shared/song-list.vue';
+import { playback } from '../services'
+import songList from '../components/shared/song-list.vue'
+import songListControls from '../components/shared/song-list-controls.vue'
+import controlsToggler from '../components/shared/song-list-controls-toggler.vue'
 
 export default {
-  components: { addToMenu, songList },
+  components: { songList, songListControls, controlsToggler },
 
-  data() {
+  data () {
     return {
-      /**
-       * Whether or not to show the "Add To" button in the header.
-       *
-       * @type {Boolean}
-       */
-      showingAddToMenu: false,
-
-      /**
-       * An array of selected songs in the list.
-       *
-       * @type {Array.<Object>}
-       */
-      selectedSongs: [],
-
+      state: null,
       meta: {
         songCount: 0,
-        totalLength: '00:00',
+        totalLength: '00:00'
       },
-    };
+      selectedSongs: [],
+      showingControls: false,
+      songListControlConfig: {},
+      isPhone: isMobile.phone
+    }
   },
 
   methods: {
-    /**
-     * Shuffles the currently selected songs.
-     */
-    shuffleSelected() {
-      if (this.selectedSongs.length < 2) {
-        return;
-      }
-
-      playback.queueAndPlay(this.selectedSongs, true);
+    setSelectedSongs (songs) {
+      this.selectedSongs = songs
     },
 
-    setSelectedSongs(songs) {
-      this.selectedSongs = songs;
+    updateMeta (meta) {
+      this.meta = assign(this.meta, meta)
     },
 
-    updateMeta(meta) {
-      this.meta = assign(this.meta, meta);
+    shuffleAll () {
+      playback.queueAndPlay(this.state.songs, true)
     },
 
-    closeAddToMenu() {
-      this.showingAddToMenu = false;
+    shuffleSelected () {
+      playback.queueAndPlay(this.selectedSongs, true)
     },
-  },
-};
+
+    toggleControls () {
+      this.showingControls = !this.showingControls
+    }
+  }
+}

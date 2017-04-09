@@ -1,31 +1,27 @@
 <template>
   <footer id="mainFooter">
     <div class="side player-controls" id="playerControls">
-      <i class="prev fa fa-step-backward control" @click.prevent="playPrev"></i>
+      <i class="prev fa fa-step-backward control" @click.prevent="playPrev"/>
 
-      <span class="play control"
-        v-if="song.playbackState === 'stopped' || song.playbackState === 'paused'"
-        @click.prevent="resume"
-      >
+      <span class="play control" v-if="song.playbackState !== 'playing'" @click.prevent="resume">
         <i class="fa fa-play"></i>
       </span>
       <span class="pause control" v-else @click.prevent="pause">
         <i class="fa fa-pause"></i>
       </span>
 
-      <i class="next fa fa-step-forward control" @click.prevent="playNext"></i>
+      <i class="next fa fa-step-forward control" @click.prevent="playNext"/>
     </div>
 
     <div class="media-info-wrap">
       <div class="middle-pane">
-
-        <span class="album-thumb" v-if="cover" :style="{ backgroundImage: 'url(' + cover + ')' }"></span>
+        <span class="album-thumb" v-if="cover" :style="{ backgroundImage: 'url('+cover+')' }"/>
 
         <div class="progress" id="progressPane">
           <h3 class="title">{{ song.title }}</h3>
           <p class="meta">
-            <a class="artist" :href="'/#!/artist/' + song.artist.id">{{ song.artist.name }}</a> –
-            <a class="album" :href="'/#!/album/' + song.album.id">{{ song.album.name }}</a>
+            <a class="artist" :href="`/#!/artist/${song.artist.id}`">{{ song.artist.name }}</a> –
+            <a class="album" :href="`/#!/album/${song.album.id}`">{{ song.album.name }}</a>
           </p>
 
           <div class="plyr">
@@ -35,32 +31,27 @@
       </div>
 
       <div class="other-controls" :class="{ 'with-gradient': prefs.showExtraPanel }">
-        <div class="wrapper">
-          <equalizer v-if="useEqualizer" v-show="showEqualizer"></equalizer>
-          <sound-bar v-show="song.playbackState === 'playing'"></sound-bar>
-          <i class="like control fa fa-heart" :class="{ liked: song.liked }"
-            @click.prevent="like"></i>
-          <span class="control"
+        <div class="wrapper" v-koel-clickaway="closeEqualizer">
+          <equalizer v-if="useEqualizer" v-show="showEqualizer"/>
+          <sound-bar v-show="song.playbackState === 'playing'"/>
+          <i v-if="song.id"
+            class="like control fa fa-heart"
+            :class="{ liked: song.liked }"
+            @click.prevent="like"/>
+          <span class="control info"
             @click.prevent="toggleExtraPanel"
             :class="{ active: prefs.showExtraPanel }">Info</span>
-          <i class="fa fa-sliders control"
+          <i class="fa fa-sliders control equalizer"
             v-if="useEqualizer"
             @click="showEqualizer = !showEqualizer"
-            :class="{ active: showEqualizer }"></i>
-          <a v-else
-            class="queue control"
-            :class="{ active: viewingQueue }"
-            href="/#!/queue">
+            :class="{ active: showEqualizer }"/>
+          <a v-else class="queue control" :class="{ active: viewingQueue }" href="/#!/queue">
             <i class="fa fa-list-ol"></i>
           </a>
           <span class="repeat control" :class="prefs.repeatMode" @click.prevent="changeRepeatMode">
             <i class="fa fa-repeat"></i>
           </span>
-          <span class="volume control" id="volume">
-            <i class="fa fa-volume-up" @click.prevent="mute" v-show="!muted"></i>
-            <i class="fa fa-volume-off" @click.prevent="unmute" v-show="muted"></i>
-            <input type="range" id="volumeRange" max="10" step="0.1" class="plyr__volume">
-          </span>
+          <volume/>
         </div>
       </div>
     </div>
@@ -68,57 +59,43 @@
 </template>
 
 <script>
-import config from '../../config';
-import { playback } from '../../services';
-import { isAudioContextSupported, event } from '../../utils';
-import { songStore, favoriteStore, preferenceStore } from '../../stores';
+import { playback } from '../../services'
+import { isAudioContextSupported, event } from '../../utils'
+import { songStore, favoriteStore, preferenceStore } from '../../stores'
 
-import soundBar from '../shared/sound-bar.vue';
-import equalizer from './equalizer.vue';
+import soundBar from '../shared/sound-bar.vue'
+import equalizer from './equalizer.vue'
+import volume from './volume.vue'
 
 export default {
-  data() {
+  data () {
     return {
       song: songStore.stub,
-      muted: false,
       viewingQueue: false,
 
       prefs: preferenceStore.state,
       showEqualizer: false,
+      cover: null,
 
       /**
        * Indicate if we should build and use an equalizer.
        *
        * @type {Boolean}
        */
-      useEqualizer: isAudioContextSupported(),
-    };
+      useEqualizer: isAudioContextSupported()
+    }
   },
 
-  components: { soundBar, equalizer },
+  components: { soundBar, equalizer, volume },
 
   computed: {
-    /**
-     * Get the album cover for the current song.
-     *
-     * @return {?String}
-     */
-    cover() {
-      // don't display the default cover here
-      if (this.song.album.cover === config.unknownCover) {
-        return null;
-      }
-
-      return this.song.album.cover;
-    },
-
     /**
      * Get the previous song in queue.
      *
      * @return {?Object}
      */
-    prev() {
-      return playback.previous;
+    prev () {
+      return playback.previous
     },
 
     /**
@@ -126,113 +103,98 @@ export default {
      *
      * @return {?Object}
      */
-    next() {
-      return playback.next;
-    },
+    next () {
+      return playback.next
+    }
   },
 
   methods: {
     /**
-     * Mute the volume.
-     */
-    mute() {
-      this.muted = true;
-
-      return playback.mute();
-    },
-
-    /**
-     * Unmute the volume.
-     */
-    unmute() {
-      this.muted = false;
-
-      return playback.unmute();
-    },
-
-    /**
      * Play the previous song in queue.
      */
-    playPrev() {
-      return playback.playPrev();
+    playPrev () {
+      return playback.playPrev()
     },
 
     /**
      * Play the next song in queue.
      */
-    playNext() {
-      return playback.playNext();
+    playNext () {
+      return playback.playNext()
     },
 
     /**
      * Resume the current song.
      * If the current song is the stub, just play the first song in the queue.
      */
-    resume() {
+    resume () {
       if (!this.song.id) {
-        return playback.playFirstInQueue();
+        return playback.playFirstInQueue()
       }
 
-      playback.resume();
+      playback.resume()
     },
 
     /**
      * Pause the playback.
      */
-    pause() {
-      playback.pause();
+    pause () {
+      playback.pause()
     },
 
     /**
      * Change the repeat mode.
      */
-    changeRepeatMode() {
-      return playback.changeRepeatMode();
+    changeRepeatMode () {
+      return playback.changeRepeatMode()
     },
 
     /**
      * Like the current song.
      */
-    like() {
-      if (!this.song.id) {
-        return;
-      }
-
-      favoriteStore.toggleOne(this.song);
+    like () {
+      this.song.id && favoriteStore.toggleOne(this.song)
     },
 
     /**
      * Toggle hide or show the extra panel.
      */
-    toggleExtraPanel() {
-      preferenceStore.set('showExtraPanel', !this.prefs.showExtraPanel);
+    toggleExtraPanel () {
+      preferenceStore.set('showExtraPanel', !this.prefs.showExtraPanel)
     },
+
+    closeEqualizer () {
+      this.showEqualizer = false
+    }
   },
 
-  created() {
+  created () {
     event.on({
       /**
-       * Listen to song:played event and set the current playing song.
+       * Listen to song:played event to set the current playing song and the cover image.
        *
        * @param  {Object} song
        *
        * @return {Boolean}
        */
-      'song:played': song => this.song = song,
+      'song:played': song => {
+        this.song = song
+        this.cover = this.song.album.cover
+      },
 
       /**
        * Listen to main-content-view:load event and highlight the Queue icon if
        * the Queue screen is being loaded.
        */
-      'main-content-view:load': view => this.viewingQueue = view === 'queue',
-
-      'koel:teardown': () => this.song = songStore.stub,
-    });
-  },
-};
+      'main-content-view:load': view => {
+        this.viewingQueue = view === 'queue'
+      }
+    })
+  }
+}
 </script>
 
-<style lang="sass">
+<style lang="scss">
 @import "../../../sass/partials/_vars.scss";
 @import "../../../sass/partials/_mixins.scss";
 
@@ -410,7 +372,7 @@ export default {
     flex: 0 0 $footerHeight;
     height: $footerHeight;
     background: url(/public/img/covers/unknown-album.png);
-    background-size: $footerHeight;
+    background-size: cover;
     position: relative;
   }
 
@@ -503,23 +465,6 @@ export default {
         }
       }
     }
-  }
-}
-
-#volume {
-  @include vertical-center();
-
-  // More tweaks
-  input[type=range] {
-    margin-top: -3px;
-  }
-
-  i {
-    width: 16px;
-  }
-
-  @media only screen and (max-width: 768px) {
-    display: none !important;
   }
 }
 </style>

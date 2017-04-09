@@ -4,12 +4,7 @@
       <span class="overview">
         <img :src="artist.image" width="64" height="64" class="cover">
         {{ artist.name }}
-        <i class="fa fa-angle-down toggler"
-          v-show="isPhone && !showingControls"
-          @click="showingControls = true"></i>
-        <i class="fa fa-angle-up toggler"
-          v-show="isPhone && showingControls"
-          @click.prevent="showingControls = false"></i>
+        <controls-toggler :showing-controls="showingControls" @toggleControls="toggleControls"/>
 
         <span class="meta" v-show="meta.songCount">
           {{ artist.albums.length | pluralize('album') }}
@@ -20,55 +15,47 @@
 
           <template v-if="sharedState.useLastfm">
             •
-            <a href="#" @click.prevent="showInfo" title="View artist's extra information">Info</a>
+            <a class="info" href @click.prevent="showInfo" title="View artist's extra information">Info</a>
           </template>
 
           <template v-if="sharedState.allowDownload">
             •
-            <a href="#" @click.prevent="download" title="Download all songs by this artist">Download</a>
+            <a class="download" href @click.prevent="download" title="Download all songs by this artist">
+              Download All
+            </a>
           </template>
         </span>
       </span>
 
-      <div class="buttons" v-show="!isPhone || showingControls">
-        <button class="play-shuffle btn btn-orange" @click.prevent="shuffle" v-if="selectedSongs.length < 2">
-          <i class="fa fa-random"></i> All
-        </button>
-        <button class="play-shuffle btn btn-orange" @click.prevent="shuffleSelected" v-if="selectedSongs.length > 1">
-          <i class="fa fa-random"></i> Selected
-        </button>
-        <button class="btn btn-green" @click.prevent.stop="showingAddToMenu = !showingAddToMenu" v-if="selectedSongs.length">
-          {{ showingAddToMenu ? 'Cancel' : 'Add To…' }}
-        </button>
-
-        <add-to-menu :songs="selectedSongs" :showing="showingAddToMenu"><add-to-menu>
-      </div>
+      <song-list-controls
+        v-show="artist.songs.length && (!isPhone || showingControls)"
+        @shuffleAll="shuffleAll"
+        @shuffleSelected="shuffleSelected"
+        :config="songListControlConfig"
+        :selectedSongs="selectedSongs"
+      />
     </h1>
 
-    <song-list :items="artist.songs" type="artist"></song-list>
+    <song-list :items="artist.songs" type="artist" ref="songList"/>
 
     <section class="info-wrapper" v-if="sharedState.useLastfm && info.showing">
-      <a href="#" class="close" @click.prevent="info.showing = false"><i class="fa fa-times"></i></a>
+      <a href class="close" @click.prevent="info.showing = false"><i class="fa fa-times"></i></a>
       <div class="inner">
-        <div class="loading" v-if="info.loading">
-          <sound-bar></sound-bar>
-        </div>
-        <artist-info :artist="artist" :mode="'full'" v-else></artist-info>
+        <div class="loading" v-if="info.loading"><sound-bar/></div>
+        <artist-info :artist="artist" mode="full" v-else/>
       </div>
     </section>
   </section>
 </template>
 
 <script>
-import isMobile from 'ismobilejs';
-
-import { pluralize, event } from '../../../utils';
-import { sharedStore, artistStore } from '../../../stores';
-import { playback, download, artistInfo as artistInfoService } from '../../../services';
-import router from '../../../router';
-import hasSongList from '../../../mixins/has-song-list';
-import artistInfo from '../extra/artist-info.vue';
-import soundBar from '../../shared/sound-bar.vue';
+import { pluralize, event } from '../../../utils'
+import { sharedStore, artistStore } from '../../../stores'
+import { playback, download, artistInfo as artistInfoService } from '../../../services'
+import router from '../../../router'
+import hasSongList from '../../../mixins/has-song-list'
+import artistInfo from '../extra/artist-info.vue'
+import soundBar from '../../shared/sound-bar.vue'
 
 export default {
   name: 'main-wrapper--main-content--artist',
@@ -76,17 +63,15 @@ export default {
   components: { artistInfo, soundBar },
   filters: { pluralize },
 
-  data() {
+  data () {
     return {
       sharedState: sharedStore.state,
       artist: artistStore.stub,
-      isPhone: isMobile.phone,
-      showingControls: false,
       info: {
         showing: false,
-        loading: true,
-      },
-    };
+        loading: true
+      }
+    }
   },
 
   watch: {
@@ -96,14 +81,14 @@ export default {
      * and move all of them to another artist (thus delete this artist entirely).
      * We should then go back to the artist list.
      */
-    'artist.albums.length': function (newVal) {
+    'artist.albums.length' (newVal) {
       if (!newVal) {
-        router.go('artists');
+        router.go('artists')
       }
-    },
+    }
   },
 
-  created() {
+  created () {
     /**
      * Listen to 'main-content-view:load' event to load the requested artist
      * into view if applicable.
@@ -113,41 +98,48 @@ export default {
      */
     event.on('main-content-view:load', (view, artist) => {
       if (view === 'artist') {
-        this.info.showing = false;
-        this.artist = artist;
+        this.info.showing = false
+        this.artist = artist
+        // #530
+        this.$nextTick(() => {
+          this.$refs.songList.sort()
+        })
       }
-    });
+    })
   },
 
   methods: {
     /**
      * Shuffle the songs by the current artist.
+     * Overriding the mixin.
      */
-    shuffle() {
-      playback.queueAndPlay(this.artist.songs, true);
+    shuffleAll () {
+      playback.queueAndPlay(this.artist.songs, true)
     },
 
     /**
      * Download all songs by the artist.
      */
-    download() {
-      download.fromArtist(this.artist);
+    download () {
+      download.fromArtist(this.artist)
     },
 
-    showInfo() {
-      this.info.showing = true;
+    showInfo () {
+      this.info.showing = true
       if (!this.artist.info) {
-        this.info.loading = true;
-        artistInfoService.fetch(this.artist).then(() => this.info.loading = false);
+        this.info.loading = true
+        artistInfoService.fetch(this.artist).then(() => {
+          this.info.loading = false
+        })
       } else {
-        this.info.loading = false;
+        this.info.loading = false
       }
-    },
-  },
-};
+    }
+  }
+}
 </script>
 
-<style lang="sass" scoped>
+<style lang="scss" scoped>
 @import "../../../../sass/partials/_vars.scss";
 @import "../../../../sass/partials/_mixins.scss";
 

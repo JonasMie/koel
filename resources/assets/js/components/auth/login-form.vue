@@ -1,42 +1,44 @@
 <template>
   <form @submit.prevent="login" :class="{ error: failed }">
-  <input v-model="email" type="email" placeholder="Email Address" autofocus required>
-  <input v-model="password" type="password" placeholder="Password" required>
-  <button type="submit">Log In</button>
+    <input v-model="email" type="email" placeholder="Email Address" autofocus required>
+    <input v-model="password" type="password" placeholder="Password" required>
+    <button type="submit">Log In</button>
   </form>
 </template>
 
 <script>
-import { userStore } from '../../stores';
-import { event } from '../../utils';
+import { userStore } from '../../stores'
+import { event } from '../../utils'
 
 export default {
-  data() {
+  data () {
     return {
       email: '',
       password: '',
-      failed: false,
-    };
+      failed: false
+    }
   },
 
   methods: {
-    login() {
-      this.failed = false;
+    login () {
+      this.failed = false
 
       userStore.login(this.email, this.password).then(() => {
-        this.failed = false;
+        this.failed = false
 
         // Reset the password so that the next login will have this field empty.
-        this.password = '';
+        this.password = ''
 
-        event.emit('user:loggedin');
-      }).catch(() => this.failed = true);
-    },
-  },
-};
+        event.emit('user:loggedin')
+      }).catch(() => {
+        this.failed = true
+      })
+    }
+  }
+}
 </script>
 
-<style lang="sass" scoped>
+<style lang="scss" scoped>
 @import "../../../sass/partials/_vars.scss";
 @import "../../../sass/partials/_mixins.scss";
 @import "../../../sass/partials/_shared.scss";

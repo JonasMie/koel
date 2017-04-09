@@ -2,12 +2,7 @@
   <section id="playlistWrapper">
     <h1 class="heading">
       <span>{{ playlist.name }}
-        <i class="fa fa-angle-down toggler"
-          v-show="isPhone && !showingControls"
-          @click="showingControls = true"></i>
-        <i class="fa fa-angle-up toggler"
-          v-show="isPhone && showingControls"
-          @click.prevent="showingControls = false"></i>
+        <controls-toggler :showing-controls="showingControls" @toggleControls="toggleControls"/>
 
         <span class="meta" v-show="meta.songCount">
           {{ meta.songCount | pluralize('song') }}
@@ -15,38 +10,29 @@
           {{ meta.totalLength }}
           <template v-if="sharedState.allowDownload && playlist.songs.length">
             •
-            <a href="#" @click.prevent="download"
-              title="Download all songs in playlist">
-              Download
+            <a href @click.prevent="download" title="Download all songs in playlist">
+              Download All
             </a>
           </template>
         </span>
       </span>
 
-      <div class="buttons" v-show="!isPhone || showingControls">
-        <button class="play-shuffle btn btn-orange"
-          @click.prevent="shuffle"
-          v-if="playlist.songs.length && selectedSongs.length < 2"
-        >
-          <i class="fa fa-random"></i> All
-        </button>
-        <button class="play-shuffle btn btn-orange" @click.prevent="shuffleSelected" v-if="selectedSongs.length > 1">
-          <i class="fa fa-random"></i> Selected
-        </button>
-        <button class="btn btn-green" @click.prevent.stop="showingAddToMenu = !showingAddToMenu" v-if="selectedSongs.length">
-          {{ showingAddToMenu ? 'Cancel' : 'Add To…' }}
-        </button>
-        <button class="del btn btn-red"
-          title="Delete this playlist"
-          @click.prevent="confirmDelete">
-          <i class="fa fa-times"></i> Playlist
-        </button>
-
-        <add-to-menu :songs="selectedSongs" :showing="showingAddToMenu && playlist.songs.length"><add-to-menu>
-      </div>
+      <song-list-controls
+        v-show="!isPhone || showingControls"
+        @shuffleAll="shuffleAll"
+        @shuffleSelected="shuffleSelected"
+        @deletePlaylist="confirmDelete"
+        :config="songListControlConfig"
+        :selectedSongs="selectedSongs"
+      />
     </h1>
 
-    <song-list v-show="playlist.songs.length" :items="playlist.songs" :playlist="playlist" type="playlist"></song-list>
+    <song-list v-show="playlist.songs.length"
+      :items="playlist.songs"
+      :playlist="playlist"
+      type="playlist"
+      ref="songList"
+    />
 
     <div v-show="!playlist.songs.length" class="none">
       The playlist is currently empty. You can fill it up by dragging songs into its name in the sidebar,
@@ -56,30 +42,28 @@
 </template>
 
 <script>
-import isMobile from 'ismobilejs';
-import swal from 'sweetalert';
-
-import { pluralize, event } from '../../../utils';
-import { playlistStore, sharedStore } from '../../../stores';
-import { playback, download } from '../../../services';
-import router from '../../../router';
-import hasSongList from '../../../mixins/has-song-list';
+import { pluralize, event, alerts } from '../../../utils'
+import { playlistStore, sharedStore } from '../../../stores'
+import { playback, download } from '../../../services'
+import router from '../../../router'
+import hasSongList from '../../../mixins/has-song-list'
 
 export default {
   name: 'main-wrapper--main-content--playlist',
   mixins: [hasSongList],
   filters: { pluralize },
 
-  data() {
+  data () {
     return {
       playlist: playlistStore.stub,
       sharedState: sharedStore.state,
-      isPhone: isMobile.phone,
-      showingControls: false,
-    };
+      songListControlConfig: {
+        deletePlaylist: true
+      }
+    }
   },
 
-  created() {
+  created () {
     /**
      * Listen to 'main-content-view:load' event to load the requested
      * playlist into view if applicable.
@@ -89,64 +73,62 @@ export default {
      */
     event.on('main-content-view:load', (view, playlist) => {
       if (view === 'playlist') {
-        this.playlist = playlist;
+        this.playlist = playlist
+        // #530
+        this.$nextTick(() => {
+          this.$refs.songList.sort()
+        })
       }
-    });
+    })
   },
 
   methods: {
     /**
      * Shuffle the songs in the current playlist.
+     * Overriding the mixin.
      */
-    shuffle() {
-      playback.queueAndPlay(this.playlist.songs, true);
+    shuffleAll () {
+      playback.queueAndPlay(this.playlist.songs, true)
     },
 
     /**
      * Confirm deleting the playlist.
      */
-    confirmDelete() {
+    confirmDelete () {
       // If the playlist is empty, just go ahead and delete it.
       if (!this.playlist.songs.length) {
-        this.del();
-
-        return;
+        this.del()
+        return
       }
 
-      swal({
-        title: 'Are you sure?',
-        text: 'Once it’s gone, it’s gone, and there’s no turning back.',
-        type: 'warning',
-        showCancelButton: true,
-        confirmButtonText: 'Yes, go ahead',
-      }, this.del);
+      alerts.confirm('Are you sure? This is a one-way street!', this.del)
     },
 
     /**
      * Delete the current playlist.
      */
-    del() {
+    del () {
       playlistStore.delete(this.playlist).then(() => {
         // Reset the current playlist to our stub, so that we don't encounter
         // any property reference error.
-        this.playlist = playlistStore.stub;
+        this.playlist = playlistStore.stub
 
         // Switch back to Home screen
-        router.go('home');
-      });
+        router.go('home')
+      })
     },
 
     /**
      * Download all songs in the current playlist.
      */
-    download() {
-      return download.fromPlaylist(this.playlist);
-    },
-  },
-};
+    download () {
+      return download.fromPlaylist(this.playlist)
+    }
+  }
+}
 </script>
 
-<style lang="sass">
+<style lang="scss">
 @import "../../../../sass/partials/_vars.scss";
 @import "../../../../sass/partials/_mixins.scss";
 

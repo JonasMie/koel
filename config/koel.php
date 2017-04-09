@@ -44,7 +44,7 @@ return [
     'streaming' => [
         'bitrate' => env('OUTPUT_BIT_RATE', 128),
         'method' => env('STREAMING_METHOD'),
-        'transcoding' => env('FFMPEG_PATH', '/usr/local/bin/ffmpeg'),
+        'ffmpeg_path' => env('FFMPEG_PATH'),
     ],
 
     /*
@@ -98,6 +98,28 @@ return [
 
     'download' => [
         'allow' => env('ALLOW_DOWNLOAD', true),
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Ignore Dot Files
+    |--------------------------------------------------------------------------
+    |
+    | Ignore dot files and folders when scanning for media files.
+    |
+    */
+    'ignore_dot_files' => env('IGNORE_DOT_FILES', true),
+
+    'itunes' => [
+        'enabled' => env('USE_ITUNES', true),
+        'affiliate_id' => '1000lsGu',
+    ],
+
+    'cache_media' => env('CACHE_MEDIA', true),
+
+    'misc' => [
+        'home_url' => 'https://koel.phanan.net/',
+        'docs_url' => 'https://koel.phanan.net/docs',
     ],
 
 ];

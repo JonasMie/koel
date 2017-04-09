@@ -3,30 +3,27 @@
     :class="{ playing: song.playbackState === 'playing' || song.playbackState === 'paused' }"
     @dblclick.prevent="play"
   >
-    <span class="cover" :style="{ backgroundImage: 'url(' + song.album.cover + ')' }">
+    <span class="cover" :style="{ backgroundImage: 'url('+song.album.cover+')' }">
       <a class="control" @click.prevent="changeSongState">
         <i class="fa fa-play" v-if="song.playbackState !== 'playing'"></i>
         <i class="fa fa-pause" v-else></i>
       </a>
     </span>
     <span class="details">
-      <span v-if="showPlayCount" :style="{ width: song.playCount * 100 / topPlayCount + '%' }"
-        class="play-count"></span>
+      <span v-if="showPlayCount" :style="{ width: song.playCount*100/topPlayCount+'%' }" class="play-count"/>
       {{ song.title }}
       <span class="by">
-        <a :href="'/#!/artist/' + song.artist.id">{{ song.artist.name }}</a>
-        <template v-if="showPlayCount">-
-        {{ song.playCount | pluralize('play') }}
-        </template>
+        <a :href="`/#!/artist/${song.artist.id}`">{{ song.artist.name }}</a>
+        <template v-if="showPlayCount">- {{ song.playCount | pluralize('play') }}</template>
       </span>
     </span>
   </li>
 </template>
 
 <script>
-import { pluralize } from '../../utils';
-import { queueStore } from '../../stores';
-import { playback } from '../../services';
+import { pluralize } from '../../utils'
+import { queueStore } from '../../stores'
+import { playback } from '../../services'
 
 export default {
   name: 'shared--home-song-item',
@@ -34,34 +31,31 @@ export default {
   filters: { pluralize },
 
   computed: {
-    showPlayCount() {
-      return this.topPlayCount && this.song.playCount;
-    },
+    showPlayCount () {
+      return this.topPlayCount && this.song.playCount
+    }
   },
 
   methods: {
-    play() {
-      if (!queueStore.contains(this.song)) {
-        queueStore.queueAfterCurrent(this.song);
-      }
-
-      playback.play(this.song);
+    play () {
+      queueStore.contains(this.song) || queueStore.queueAfterCurrent(this.song)
+      playback.play(this.song)
     },
 
-    changeSongState() {
+    changeSongState () {
       if (this.song.playbackState === 'stopped') {
-        this.play(this.song);
+        this.play(this.song)
       } else if (this.song.playbackState === 'paused') {
-        playback.resume();
+        playback.resume()
       } else {
-        playback.pause();
+        playback.pause()
       }
-    },
-  },
-};
+    }
+  }
+}
 </script>
 
-<style lang="sass" scoped>
+<style lang="scss" scoped>
 @import "../../../sass/partials/_vars.scss";
 @import "../../../sass/partials/_mixins.scss";
 

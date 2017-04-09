@@ -1,7 +1,7 @@
 <template>
   <span class="profile" id="userBadge">
     <a class="view-profile control" href="/#!/profile">
-      <img class="avatar" :src="state.current.avatar" alt="Avatar"></img>
+      <img class="avatar" :src="state.current.avatar" alt="Avatar"/>
       <span class="name">{{ state.current.name }}</span>
     </a>
 
@@ -10,27 +10,27 @@
 </template>
 
 <script>
-import { userStore } from '../../stores';
-import { event } from '../../utils';
+import { userStore } from '../../stores'
+import { event } from '../../utils'
 
 export default {
   name: 'site-header--user-badge',
 
-  data() {
+  data () {
     return {
-      state: userStore.state,
-    };
+      state: userStore.state
+    }
   },
 
   methods: {
-    logout() {
-      event.emit('logout');
-    },
-  },
-};
+    logout () {
+      event.emit('logout')
+    }
+  }
+}
 </script>
 
-<style lang="sass">
+<style lang="scss">
 @import "../../../sass/partials/_vars.scss";
 @import "../../../sass/partials/_mixins.scss";
 

@@ -9,89 +9,96 @@
       @keydown.mediaNext = "playNext"
       @keydown.mediaToggle = "togglePlayback"
     >
-      <site-header></site-header>
-      <main-wrapper></main-wrapper>
-      <site-footer></site-footer>
-      <overlay ref="overlay"></overlay>
-      <edit-songs-form ref="editSongsForm"></edit-songs-form>
+      <site-header/>
+      <main-wrapper/>
+      <site-footer/>
+      <overlay ref="overlay"/>
+      <edit-songs-form ref="editSongsForm"/>
     </div>
 
     <div class="login-wrapper" v-if="!authenticated">
-      <login-form></login-form>
+      <login-form/>
     </div>
   </div>
 </template>
 
 <script>
-import Vue from 'vue';
-import $ from 'jquery';
+import Vue from 'vue'
 
-import siteHeader from './components/site-header/index.vue';
-import siteFooter from './components/site-footer/index.vue';
-import mainWrapper from './components/main-wrapper/index.vue';
-import overlay from './components/shared/overlay.vue';
-import loginForm from './components/auth/login-form.vue';
-import editSongsForm from './components/modals/edit-songs-form.vue';
+import siteHeader from './components/site-header/index.vue'
+import siteFooter from './components/site-footer/index.vue'
+import mainWrapper from './components/main-wrapper/index.vue'
+import overlay from './components/shared/overlay.vue'
+import loginForm from './components/auth/login-form.vue'
+import editSongsForm from './components/modals/edit-songs-form.vue'
 
-import { event, showOverlay, hideOverlay, forceReloadWindow, url } from './utils';
-import { sharedStore, songStore, userStore, preferenceStore as preferences } from './stores';
-import { playback, ls } from './services';
-import { focusDirective, clickawayDirective } from './directives';
-import router from './router';
+import { event, showOverlay, hideOverlay, forceReloadWindow, $ } from './utils'
+import { sharedStore, userStore, preferenceStore as preferences } from './stores'
+import { playback, ls } from './services'
+import { focusDirective, clickawayDirective } from './directives'
+import router from './router'
 
 export default {
   components: { siteHeader, siteFooter, mainWrapper, overlay, loginForm, editSongsForm },
 
-  data() {
+  data () {
     return {
-      authenticated: false,
-    };
+      authenticated: false
+    }
   },
 
-  mounted() {
+  mounted () {
     // The app has just been initialized, check if we can get the user data with an already existing token
-    const token = ls.get('jwt-token');
+    const token = ls.get('jwt-token')
     if (token) {
-      this.authenticated = true;
-      this.init();
+      this.authenticated = true
+      this.init()
     }
 
     // Create the element to be the ghost drag image.
-    $('<div id="dragGhost"></div>').appendTo('body');
+    const dragGhost = document.createElement('div')
+    dragGhost.id = 'dragGhost'
+    document.body.appendChild(dragGhost)
 
     // And the textarea to copy stuff
-    $('<textarea id="copyArea"></textarea>').appendTo('body');
+    const copyArea = document.createElement('textarea')
+    copyArea.id = 'copyArea'
+    document.body.appendChild(copyArea)
 
     // Add an ugly mac/non-mac class for OS-targeting styles.
     // I'm crying inside.
-    $('html').addClass(navigator.userAgent.indexOf('Mac') !== -1 ? 'mac' : 'non-mac');
+    $.addClass(document.documentElement, navigator.userAgent.indexOf('Mac') !== -1 ? 'mac' : 'non-mac')
   },
 
   methods: {
-    init() {
-      showOverlay();
+    init () {
+      showOverlay()
 
       // Make the most important HTTP request to get all necessary data from the server.
       // Afterwards, init all mandatory stores and services.
       sharedStore.init().then(() => {
-        playback.init();
-        hideOverlay();
+        playback.init()
+        hideOverlay()
 
         // Ask for user's notification permission.
-        this.requestNotifPermission();
+        this.requestNotifPermission()
 
         // To confirm or not to confirm closing, it's a question.
         window.onbeforeunload = e => {
           if (!preferences.confirmClosing) {
-            return;
+            return
           }
 
-          return 'You asked Koel to confirm before closing, so here it is.';
-        };
+          // Notice that a custom message like this has ceased to be supported
+          // starting from Chrome 51.
+          return 'You asked Koel to confirm before closing, so here it is.'
+        }
 
         // Let all other components know we're ready.
-        event.emit('koel:ready');
-      }).catch(() => this.authenticated = false);
+        event.emit('koel:ready')
+      }).catch(() => {
+        this.authenticated = false
+      })
     },
 
     /**
@@ -99,14 +106,16 @@ export default {
      *
      * @param {Object} e The keydown event
      */
-    togglePlayback(e) {
-      if ($(e.target).is('input,textarea,button,select')) {
-        return true;
+    togglePlayback (e) {
+      if ($.is(e.target, 'input,textarea,button,select')) {
+        return true
       }
 
-      // Ah... Good ol' jQuery. Whatever play/pause control is there, we blindly click it.
-      $('#mainFooter .play:visible, #mainFooter .pause:visible').click();
-      e.preventDefault();
+      // Whatever play/pause control is there, we blindly click it.
+      const play = document.querySelector('#mainFooter .play')
+      play ? play.click() : document.querySelector('#mainFooter .pause').click()
+
+      e.preventDefault()
     },
 
     /**
@@ -114,13 +123,13 @@ export default {
      *
      * @param {Object} e The keydown event
      */
-    playPrev(e) {
-      if ($(e.target).is('input,textarea')) {
-        return true;
+    playPrev (e) {
+      if ($.is(e.target, 'input,textarea')) {
+        return true
       }
 
-      playback.playPrev();
-      e.preventDefault();
+      playback.playPrev()
+      e.preventDefault()
     },
 
     /**
@@ -128,13 +137,13 @@ export default {
      *
      * @param {Object} e The keydown event
      */
-    playNext(e) {
-      if ($(e.target).is('input,textarea')) {
-        return true;
+    playNext (e) {
+      if ($.is(e.target, 'input,textarea')) {
+        return true
       }
 
-      playback.playNext();
-      e.preventDefault();
+      playback.playNext()
+      e.preventDefault()
     },
 
     /**
@@ -142,37 +151,39 @@ export default {
      *
      * @param {Object} e The keydown event
      */
-    search(e) {
-      if ($(e.target).is('input,textarea') || e.metaKey || e.ctrlKey) {
-        return true;
+    search (e) {
+      if ($.is(e.target, 'input,textarea') || e.metaKey || e.ctrlKey) {
+        return true
       }
 
-      $('#searchForm input[type="search"]').focus().select();
-      e.preventDefault();
+      const selectBox = document.querySelector('#searchForm input[type="search"]')
+      selectBox.focus()
+      selectBox.select()
+      e.preventDefault()
     },
 
     /**
      * Request for notification permission if it's not provided and the user is OK with notifs.
      */
-    requestNotifPermission() {
-      if (window.Notification && preferences.notify && Notification.permission !== 'granted') {
-        Notification.requestPermission(result => {
+    requestNotifPermission () {
+      if (window.Notification && preferences.notify && window.Notification.permission !== 'granted') {
+        window.Notification.requestPermission(result => {
           if (result === 'denied') {
-            preferences.notify = false;
+            preferences.notify = false
           }
-        });
+        })
       }
-    },
+    }
   },
 
-  created() {
+  created () {
     event.on({
       /**
        * When the user logs in, set the whole app to be "authenticated" and initialize it.
        */
-       'user:loggedin': () => {
-        this.authenticated = true;
-        this.init();
+      'user:loggedin': () => {
+        this.authenticated = true
+        this.init()
       },
 
       /**
@@ -185,22 +196,22 @@ export default {
       /**
        * Log the current user out and reset the application state.
        */
-      logout() {
+      logout () {
         userStore.logout().then((r) => {
-          ls.remove('jwt-token');
-          forceReloadWindow();
-        });
+          ls.remove('jwt-token')
+          forceReloadWindow()
+        })
       },
 
       /**
        * Init our basic, custom router on ready to determine app state.
        */
       'koel:ready': () => {
-        router.init();
-      },
-    });
-  },
-};
+        router.init()
+      }
+    })
+  }
+}
 
 // Register our custom key codes
 Vue.config.keyCodes = {
@@ -211,20 +222,20 @@ Vue.config.keyCodes = {
   mediaNext: 176,
   mediaPrev: 177,
   mediaToggle: 179
-};
+}
 
 // …and the global directives
-Vue.directive('koel-focus', focusDirective);
-Vue.directive('koel-clickaway',clickawayDirective);
+Vue.directive('koel-focus', focusDirective)
+Vue.directive('koel-clickaway', clickawayDirective)
 </script>
 
-<style lang="sass">
+<style lang="scss">
 @import "resources/assets/sass/partials/_vars.scss";
 @import "resources/assets/sass/partials/_mixins.scss";
 @import "resources/assets/sass/partials/_shared.scss";
 
 #dragGhost {
-  position: relative;
+  position: absolute;
   display: inline-block;
   background: $colorGreen;
   padding: .8rem;
@@ -233,6 +244,8 @@ Vue.directive('koel-clickaway',clickawayDirective);
   font-family: $fontFamily;
   font-size: 1rem;
   font-weight: $fontWeight_Thin;
+  top: -100px;
+  left: 0px;
 
   /**
    * We can totally hide this element on touch devices, because there's
@@ -248,6 +261,7 @@ Vue.directive('koel-clickaway',clickawayDirective);
   left: -9999px;
   width: 1px;
   height: 1px;
+  bottom: 1px;
 
   html.touchevents & {
     display: none;

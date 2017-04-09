@@ -4,16 +4,14 @@
  * @type {Object}
  */
 export const clickawayDirective = {
-  bind(el, { value }) {
+  bind (el, { value }) {
     if (typeof value !== 'function') {
-      console.warn(`Expect a function, got ${value}`);
-      return;
+      console.warn(`Expect a function, got ${value}`)
+      return
     }
 
     document.addEventListener('click', e => {
-      if (!el.contains(e.target)) {
-        value();
-      }
-    });
-  },
+      el.contains(e.target) || value()
+    })
+  }
 }

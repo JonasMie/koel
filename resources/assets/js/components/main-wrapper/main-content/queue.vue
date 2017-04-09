@@ -2,12 +2,7 @@
   <section id="queueWrapper">
     <h1 class="heading">
       <span title="That's a freaking lot of U's and E's">Current Queue
-        <i class="fa fa-angle-down toggler"
-          v-show="isPhone && !showingControls"
-          @click="showingControls = true"></i>
-        <i class="fa fa-angle-up toggler"
-          v-show="isPhone && showingControls"
-          @click.prevent="showingControls = false"></i>
+        <controls-toggler :showing-controls="showingControls" @toggleControls="toggleControls"/>
 
         <span class="meta" v-show="meta.songCount">
           {{ meta.songCount | pluralize('song') }}
@@ -16,31 +11,17 @@
         </span>
       </span>
 
-      <div class="buttons" v-show="!isPhone || showingControls">
-        <button
-          class="play-shuffle btn btn-orange"
-          @click.prevent="shuffle"
-          v-if="state.songs.length > 1 && selectedSongs.length < 2"
-        >
-          <i class="fa fa-random"></i> All
-        </button>
-        <button class="play-shuffle btn btn-orange" @click.prevent="shuffleSelected" v-if="selectedSongs.length > 1">
-          <i class="fa fa-random"></i> Selected
-        </button>
-        <button class="btn btn-green" @click.prevent.stop="showingAddToMenu = !showingAddToMenu" v-if="state.songs.length > 1">
-          {{ showingAddToMenu ? 'Cancel' : 'Add To…' }}
-        </button>
-        <button class="btn btn-red" @click.prevent="clear" v-if="state.songs.length">Clear</button>
-
-        <add-to-menu
-          :songs="songsToAddTo"
-          :showing="showingAddToMenu && state.songs.length"
-          :settings="{ canQueue: false }">
-        </add-to-menu>
-      </div>
+      <song-list-controls
+        v-show="state.songs.length && (!isPhone || showingControls)"
+        @shuffleAll="shuffleAll"
+        @shuffleSelected="shuffleSelected"
+        @clearQueue="clearQueue"
+        :config="songListControlConfig"
+        :selectedSongs="selectedSongs"
+      />
     </h1>
 
-    <song-list v-show="state.songs.length" :items="state.songs" :sortable="false" type="queue"></song-list>
+    <song-list v-show="state.songs.length" :items="state.songs" :sortable="false" type="queue"/>
 
     <div v-show="!state.songs.length" class="none">
       <p>Empty spaces. Abandoned places.</p>
@@ -53,75 +34,54 @@
 </template>
 
 <script>
-import isMobile from 'ismobilejs';
-
-import { pluralize } from '../../../utils';
-import { queueStore, songStore } from '../../../stores';
-import { playback } from '../../../services';
-import hasSongList from '../../../mixins/has-song-list';
+import { pluralize } from '../../../utils'
+import { queueStore, songStore } from '../../../stores'
+import { playback } from '../../../services'
+import hasSongList from '../../../mixins/has-song-list'
 
 export default {
   name: 'main-wrapper--main-content--queue',
   mixins: [hasSongList],
   filters: { pluralize },
 
-  data() {
+  data () {
     return {
       state: queueStore.state,
-      showingAddToMenu: false,
-      playlistName: '',
-      isPhone: isMobile.phone,
-      showingControls: false,
-    };
+      songListControlConfig: {
+        clearQueue: true
+      }
+    }
   },
 
   computed: {
     /**
-     * If no songs are selected, we provide all queued songs as a tribute to playlist god.
-     *
-     * @return {Array} The songs to add into a (new) playlist
+     * Determine if we should display a "Shuffle All" link.
      */
-    songsToAddTo() {
-      return this.selectedSongs.length ? this.selectedSongs : queueStore.all;
-    },
-
-    /**
-     * Determine if we should display a "Shuffling All" link.
-     * This should be true if:
-     * - The current list is queue, and
-     * - We have songs to shuffle.
-     */
-    showShufflingAllOption() {
-      return songStore.all.length;
-    },
+    showShufflingAllOption () {
+      return songStore.all.length
+    }
   },
 
   methods: {
     /**
-     * Shuffle the current queue.
-     */
-    shuffle() {
-      playback.queueAndPlay(queueStore.shuffle());
-    },
-
-    /**
      * Shuffle all songs we have.
+     * Overriding the mixin.
      */
-    shuffleAll() {
-      playback.queueAndPlay(songStore.all, true);
+    shuffleAll () {
+      playback.queueAndPlay(this.state.songs.length ? this.state.songs : songStore.all, true)
     },
 
     /**
      * Clear the queue.
      */
-    clear() {
-      queueStore.clear();
-    },
-  },
-};
+    clearQueue () {
+      queueStore.clear()
+    }
+  }
+}
 </script>
 
-<style lang="sass">
+<style lang="scss">
 @import "../../../../sass/partials/_vars.scss";
 @import "../../../../sass/partials/_mixins.scss";
 
@@ -134,7 +94,6 @@ export default {
       color: $colorHighlight;
     }
   }
-
 
   button.play-shuffle {
     i {

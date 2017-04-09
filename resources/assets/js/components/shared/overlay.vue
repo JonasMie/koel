@@ -1,13 +1,13 @@
 <template>
-  <div id="overlay" v-show="state.showing" :class="state.type">
+  <div id="overlay" v-show="state.showing" class="overlay" :class="state.type">
     <div class="display">
-      <sound-bar v-show="state.type === 'loading'"></sound-bar>
-      <i class="fa fa-exclamation-circle" v-show="state.type === 'error'"></i>
-      <i class="fa fa-exclamation-triangle" v-show="state.type === 'warning'"></i>
-      <i class="fa fa-info-circle" v-show="state.type === 'info'"></i>
-      <i class="fa fa-check-circle" v-show="state.type === 'success'"></i>
+      <sound-bar v-show="state.type === 'loading'"/>
+      <i class="fa fa-exclamation-circle" v-show="state.type === 'error'"/>
+      <i class="fa fa-exclamation-triangle" v-show="state.type === 'warning'"/>
+      <i class="fa fa-info-circle" v-show="state.type === 'info'"/>
+      <i class="fa fa-check-circle" v-show="state.type === 'success'"/>
 
-      <span v-html="state.message"></span>
+      <span v-html="state.message"/>
     </div>
 
     <button v-show="state.dismissable" @click.prevent="state.showing = false">Close</button>
@@ -15,15 +15,15 @@
 </template>
 
 <script>
-import { assign } from 'lodash';
+import { assign } from 'lodash'
 
-import { event } from '../../utils';
-import soundBar from './sound-bar.vue';
+import { event } from '../../utils'
+import soundBar from './sound-bar.vue'
 
 export default {
   components: { soundBar },
 
-  data() {
+  data () {
     return {
       state: {
         showing: true,
@@ -35,9 +35,9 @@ export default {
          * @type {String}
          */
         type: 'loading',
-        message: '',
-      },
-    };
+        message: ''
+      }
+    }
   },
 
   methods: {
@@ -48,16 +48,16 @@ export default {
      * @param {String}  type    (loading|success|info|warning|error)
      * @param {Boolean} dismissable Whether to show the Close button
      */
-    show(options) {
-      assign(this.state, options);
-      this.state.showing = true;
+    show (options) {
+      assign(this.state, options)
+      this.state.showing = true
     },
 
     /**
      * Hide the overlay.
      */
-    hide() {
-      this.state.showing = false;
+    hide () {
+      this.state.showing = false
     },
 
     /**
@@ -66,39 +66,26 @@ export default {
      *
      * @param {Boolean} dismissable
      */
-    setDimissable(dismissable = true) {
-      this.state.dismissable = dismissable;
-    },
+    setDimissable (dismissable = true) {
+      this.state.dismissable = dismissable
+    }
   },
 
-  created() {
+  created () {
     event.on({
-      'overlay:show': options => {
-        this.show(options);
-      },
-
-      'overlay:hide': () => {
-        this.hide();
-      },
-    });
-  },
-};
+      'overlay:show': options => this.show(options),
+      'overlay:hide': () => this.hide()
+    })
+  }
+}
 </script>
 
-<style lang="sass">
+<style lang="scss">
 @import "../../../sass/partials/_vars.scss";
 @import "../../../sass/partials/_mixins.scss";
 
 #overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  z-index: 9999;
-  width: 100%;
-  height: 100%;
   background-color: rgba(0, 0, 0, 1);
-
-  @include vertical-center();
   flex-direction: column;
 
   .display {
