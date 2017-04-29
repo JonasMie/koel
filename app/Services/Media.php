@@ -59,13 +59,15 @@ class Media
      * @param bool        $force Whether to force syncing even unchanged files
      * @param SyncMedia   $syncCommand The SyncMedia command object, to log to console if executed by artisan.
      */
-    public function sync($path = null, $tags = [], $substrings = [], $force = false, SyncMedia $syncCommand = null)
+    public function sync($path = null, $tags = [], $substrings = ["file://localhost//JONAS/multimedia", "/share/Multimedia"], $force = false, SyncMedia $syncCommand = null)
     {
         if (!app()->runningInConsole()) {
             set_time_limit(config('koel.sync.timeout'));
         }
 
         $path = $path ?: Setting::get('media_path');
+        $iTunes_path = Setting::get('iTunes_path');
+
         $this->setTags($tags);
 
         $results = [
@@ -75,31 +77,16 @@ class Media
         ];
 
         $getID3 = new getID3();
-
-        // Check if iTunes Library file is given as media path. If so, get its content
-        if (ends_with($path, ".xml") && is_file($path)) {
-            $plist = $this->gatheriTunesFiles($path);
-            if (key_exists('Tracks', $plist)) {
-                $files = $plist['Tracks'];
-            }
-        } else {
-            $files = $this->gatherFiles($path);
-        }
+        $files = $this->gatherFiles($path);
 
         if ($syncCommand) {
             $syncCommand->createProgressBar(count($files));
         }
 
         foreach ($files as $file) {
-            $itunes_id = null;
-            if (is_array($file)) {
-                $itunes_id = $file['Track ID'];
-                $file = $this->normalizePath($file['Location'], $substrings);
-            }
-
             $file = new File($file, $getID3);
 
-            $song = $file->sync($this->tags, $force, $itunes_id);
+            $song = $file->sync($this->tags, $force);
 
             if ($song === true) {
                 $results['ugly'][] = $file;
@@ -122,47 +109,75 @@ class Media
 
         Song::deleteWhereIDsNotIn($hashes);
 
-        // Sync iTunes playlists.
-        if (isset($plist) && $plist['Playlists']) {
-            if ($syncCommand) {
-                $syncCommand->info(PHP_EOL . PHP_EOL . 'Koel iTunes playlist syncing started.' . PHP_EOL);
-                $syncCommand->createProgressBar(count($plist['Playlists']));
-                $user = User::whereIsAdmin(true)->first();
-            } else {
-                $user = auth()->user();
-            }
-            $it_playlist_ids = [];
-            foreach ($plist['Playlists'] as $it_playlist) {
-                $it_playlist_ids[] = $it_playlist['Playlist ID'];
+        // Check if iTunes Library file is given as media path. If so, get its conten
+        if (ends_with($iTunes_path, ".xml") && is_file($iTunes_path)) {
+            $plist = $this->gatheriTunesFiles($iTunes_path);
+            if (key_exists('Tracks', $plist)) {
+                $iTunes_files = $plist['Tracks'];
+                $it_results = [];
+                foreach ($iTunes_files as $it_file) {
+                    $file = new File($this->normalizePath($it_file['Location'], $substrings), $getID3);
 
-                if ((key_exists("Visible", $it_playlist) && !$it_playlist['Visible']) || !key_exists("Playlist Items", $it_playlist)) {
+                    $sync_song = $file->sync($this->tags, $force, $it_file['Track ID']);
+
+                    if ($sync_song !== true) {
+                        $song = Song::byPath($this->normalizePath($it_file['Location'], $substrings));
+                        $song->addItunesId($it_file['Track ID']);
+                    } elseif ($sync_song === false) {
+
+                    } else {
+                        $sync_song->addItunesId($it_file['Track ID']);
+                    }
+
                     if ($syncCommand) {
                         $syncCommand->updateProgressBar();
-                        $syncCommand->logPlaylistToConsole($it_playlist['Name'], true);
+                        $syncCommand->logToConsole($file->getPath(), $song, $file->getSyncError());
                     }
-                    continue;
-                }
-                $it_playlist_id = $it_playlist['Playlist ID'];
-                $playlist = $user->playlists()->whereItunesId($it_playlist_id)->first();
-                if (!$playlist) {
-                    $playlist = $user->playlists()->create(["name" => $it_playlist['Name'], "itunes_id" => $it_playlist_id]);
-                }
-
-                $playlist_tracks = [];
-                foreach ($it_playlist['Playlist Items'] as $playlistItem) {
-                    $playlist_tracks[] = $playlistItem['Track ID'];
-                }
-                $res = $playlist->songs()->sync(Song::whereIn('itunes_id', $playlist_tracks)->get(['id']));
-                $result = !(count($res['attached']) || count($res['detached']) || count($res['updated']));
-
-                if ($syncCommand) {
-                    $syncCommand->updateProgressBar();
-                    $syncCommand->logPlaylistToConsole($it_playlist['Name'], $result);
                 }
             }
-            Playlist::whereNotIn('itunes_id', $it_playlist_ids)->delete();
-        }
 
+
+            // Sync iTunes playlists.
+            if (isset($plist) && $plist['Playlists']) {
+                if ($syncCommand) {
+                    $syncCommand->info(PHP_EOL . PHP_EOL . 'Koel iTunes playlist syncing started.' . PHP_EOL);
+                    $syncCommand->createProgressBar(count($plist['Playlists']));
+                    $user = User::whereIsAdmin(true)->first();
+                } else {
+                    $user = auth()->user();
+                }
+                $it_playlist_ids = [];
+                foreach ($plist['Playlists'] as $it_playlist) {
+                    $it_playlist_ids[] = $it_playlist['Playlist ID'];
+
+                    if ((key_exists("Visible", $it_playlist) && !$it_playlist['Visible']) || !key_exists("Playlist Items", $it_playlist)) {
+                        if ($syncCommand) {
+                            $syncCommand->updateProgressBar();
+                            $syncCommand->logPlaylistToConsole($it_playlist['Name'], true);
+                        }
+                        continue;
+                    }
+                    $it_playlist_id = $it_playlist['Playlist ID'];
+                    $playlist = $user->playlists()->whereItunesId($it_playlist_id)->first();
+                    if (!$playlist) {
+                        $playlist = $user->playlists()->create(["name" => $it_playlist['Name'], "itunes_id" => $it_playlist_id]);
+                    }
+
+                    $playlist_tracks = [];
+                    foreach ($it_playlist['Playlist Items'] as $playlistItem) {
+                        $playlist_tracks[] = $playlistItem['Track ID'];
+                    }
+                    $res = $playlist->songs()->sync(Song::whereIn('itunes_id', $playlist_tracks)->get(['id']));
+                    $result = !(count($res['attached']) || count($res['detached']) || count($res['updated']));
+
+                    if ($syncCommand) {
+                        $syncCommand->updateProgressBar();
+                        $syncCommand->logPlaylistToConsole($it_playlist['Name'], $result);
+                    }
+                }
+                Playlist::whereNotIn('itunes_id', $it_playlist_ids)->delete();
+            }
+        }
         // Trigger LibraryChanged, so that TidyLibrary handler is fired to, erm, tidy our library.
         event(new LibraryChanged());
     }
@@ -178,7 +193,7 @@ class Media
     {
         return Finder::create()
             ->ignoreUnreadableDirs()
-            ->ignoreDotFiles((bool) config('koel.ignore_dot_files')) // https://github.com/phanan/koel/issues/450
+            ->ignoreDotFiles((bool)config('koel.ignore_dot_files'))// https://github.com/phanan/koel/issues/450
             ->files()
             ->followLinks()
             ->name('/\.(mp3|ogg|m4a|flac)$/i')

@@ -45,9 +45,9 @@ class Song extends Model
      * @var array
      */
     protected $casts = [
-        'length' => 'float',
-        'mtime' => 'int',
-        'track' => 'int',
+        'length'                 => 'float',
+        'mtime'                  => 'int',
+        'track'                  => 'int',
         'contributing_artist_id' => 'int',
     ];
 
@@ -136,7 +136,7 @@ class Song extends Model
          */
         $updatedSongs = [];
 
-        $ids = (array) $ids;
+        $ids = (array)$ids;
         // If we're updating only one song, take into account the title, lyrics, and track number.
         $single = count($ids) === 1;
 
@@ -150,8 +150,8 @@ class Song extends Model
                 trim($data['albumName'] ?: $song->album->name),
                 trim($data['artistName']) ?: $song->artist->name,
                 $single ? trim($data['lyrics']) : $song->lyrics,
-                $single ? (int) $data['track'] : $song->track,
-                (int) $data['compilationState']
+                $single ? (int)$data['track'] : $song->track,
+                (int)$data['compilationState']
             );
         }
 
@@ -217,17 +217,30 @@ class Song extends Model
     }
 
     /**
+     * Add iTunesId to a single song
+     *
+     * @param int $iTunesId
+     *
+     * @return bool
+     */
+    public function addItunesId($iTunesId)
+    {
+        $this->itunes_id = $iTunesId;
+        return $this->save();
+    }
+
+    /**
      * Scope a query to only include songs in a given directory.
      *
      * @param \Illuminate\Database\Eloquent\Builder $query
-     * @param string                                $path  Full path of the directory
+     * @param string                                $path Full path of the directory
      *
      * @return \Illuminate\Database\Eloquent\Builder
      */
     public function scopeInDirectory($query, $path)
     {
         // Make sure the path ends with a directory separator.
-        $path = rtrim(trim($path), DIRECTORY_SEPARATOR).DIRECTORY_SEPARATOR;
+        $path = rtrim(trim($path), DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR;
 
         return $query->where('path', 'LIKE', "$path%");
     }
@@ -244,7 +257,7 @@ class Song extends Model
     {
         $songs = Interaction::where([
             'user_id' => $user->id,
-            'liked' => true,
+            'liked'   => true,
         ])
             ->with('song')
             ->get()
@@ -274,13 +287,13 @@ class Song extends Model
 
         $cmd = $s3->getCommand('GetObject', [
             'Bucket' => $this->s3_params['bucket'],
-            'Key' => $this->s3_params['key'],
+            'Key'    => $this->s3_params['key'],
         ]);
 
         // Here we specify that the request is valid for 1 hour.
         // We'll also cache the public URL for future reuse.
         $request = $s3->createPresignedRequest($cmd, '+1 hour');
-        $url = (string) $request->getUri();
+        $url = (string)$request->getUri();
         Cache::put("OSUrl/{$this->id}", $url, 60);
 
         return $url;
