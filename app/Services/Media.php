@@ -120,7 +120,7 @@ class Media
 
                     $sync_song = $file->sync($this->tags, $force, $it_file['Track ID']);
 
-                    if ($sync_song !== true) {
+                    if ($sync_song === true) {
                         $song = Song::byPath($this->normalizePath($it_file['Location'], $substrings));
                         $song->addItunesId($it_file['Track ID']);
                     } elseif ($sync_song === false) {
